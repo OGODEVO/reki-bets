@@ -3,6 +3,7 @@ import json
 import time
 import uuid
 import requests
+import serpapi
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -16,17 +17,30 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 SPORTRADAR_API_KEY = os.getenv("SPORTRADAR_API_KEY")
+SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 
-if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY]):
-    raise ValueError("All API keys (GEMINI, BRAVE, SPORTRADAR) must be set in .env file")
+if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY]):
+    raise ValueError("All API keys (GEMINI, BRAVE, SPORTRADAR, SERPAPI) must be set in .env file")
 
 # --- Tool Definitions & Schema ---
 
 def brave_search(query: str) -> str:
     """Performs a web search using the Brave Search API."""
     print(f"Performing Brave search for: {query}")
-    # (Implementation is unchanged)
-    return ""
+    url = "https://api.search.brave.com/res/v1/web/search"
+    headers = {"Accept": "application/json", "X-Subscription-Token": BRAVE_API_KEY}
+    params = {"q": query}
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        results = response.json()
+        simplified_results = [
+            {"title": item.get("title"), "url": item.get("url"), "snippet": item.get("description")}
+            for item in results.get("web", {}).get("results", [])[:3]
+        ]
+        return json.dumps(simplified_results)
+    except Exception as e:
+        return f"Error during search: {e}"
 
 def get_soccer_summary_by_date(date: str) -> str:
     """
@@ -69,9 +83,33 @@ def get_soccer_summary_by_date(date: str) -> str:
     except Exception as e:
         return f"An unexpected error occurred: {e}"
 
+def serpapi_search(query: str) -> str:
+    """
+    Searches the web using SerpApi's Google Search.
+
+    Args:
+        query: The search query.
+
+    Returns:
+        A string containing the search results.
+    """
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if not api_key:
+        raise ValueError("SERPAPI_API_KEY environment variable not set.")
+
+    params = {
+        "engine": "google",
+        "q": query,
+        "api_key": api_key,
+    }
+
+    results = serpapi.search(params)
+    return str(results.as_dict())
+
 AVAILABLE_TOOLS = {
     "brave_search": brave_search,
     "get_soccer_summary_by_date": get_soccer_summary_by_date,
+    "serpapi_search": serpapi_search,
 }
 
 tools_schema = [
@@ -79,7 +117,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "brave_search",
-            "description": "Find real-time information from the internet.",
+            "description": "Use this tool to find real-time information from the internet, including news, facts, and answers to general knowledge questions. Input should be a clear and specific search query.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -108,6 +146,23 @@ tools_schema = [
                 "required": ["date"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "serpapi_search",
+            "description": "Leverages the SerpApi service to conduct real-time, comprehensive Google searches. This tool is ideal for accessing up-to-date information, answering questions about current events, or finding specific details on a wide range of topics by querying the Google search engine.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query.",
+                    }
+                },
+                "required": ["query"],
+            },
+        },
     }
 ]
 
