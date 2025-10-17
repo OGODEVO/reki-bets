@@ -25,11 +25,28 @@ if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY])
 import subprocess
 import sys
 
+from nfl import get_current_week_schedule
+
 # --- Tool Definitions & Schema ---
 
-AVAILABLE_TOOLS = {}
+AVAILABLE_TOOLS = {
+    "get_current_week_schedule": get_current_week_schedule,
+}
 
-tools_schema = []
+tools_schema = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_current_week_schedule",
+            "description": "Fetches the NFL schedule for the current week, including game IDs, teams, venue, and broadcast info.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    }
+]
 
 # --- Pydantic Models & FastAPI App ---
 # (The rest of the file is the same)
@@ -85,7 +102,12 @@ async def chat_completions(request: ChatCompletionRequest):
             function_args = json.loads(tool_call.function.arguments)
             function_response = function_to_call(**function_args) if function_args else function_to_call()
             
-            messages.append({"tool_call_id": tool_call.id, "role": "tool", "name": function_name, "content": function_response})
+            messages.append({
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": function_name,
+                "content": json.dumps(function_response)
+            })
         
         final_response = client.chat.completions.create(
             model=request.model, messages=messages, stream=request.stream
