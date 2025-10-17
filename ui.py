@@ -20,7 +20,7 @@ with st.sidebar:
     st.write("Your AI Research Assistant.")
     st.button("➕ New Chat", on_click=new_chat, use_container_width=True)
     st.divider()
-    st.caption("Built with Gemini & Streamlit")
+    st.caption("Reki 0.1")
 
 
 # Main chat interface
@@ -56,6 +56,7 @@ if prompt := st.chat_input("What can I help you with?"):
     }
 
     # --- Call the API and handle the stream ---
+    full_response = ""
     try:
         with st.chat_message("assistant", avatar='💡'):
             spinner_message = "Reki is thinking..."
@@ -80,8 +81,8 @@ if prompt := st.chat_input("What can I help you with?"):
                         chunk = json.loads(content)
                         if chunk.get("choices", [{}])[0].get("delta", {}).get("tool_calls"):
                             tool_name = chunk["choices"][0]["delta"]["tool_calls"][0]["function"]["name"]
-                            if "nfl" in tool_name or "schedule" in tool_name:
-                                spinner_message = "Calling NFL tool... 🏈"
+                            if "nfl" in tool_name or "schedule" in tool_name or "nba" in tool_name:
+                                spinner_message = "Calling NFL/NBA tool... 🏈🏀"
                             else:
                                 spinner_message = f"Calling tool: `{tool_name}`..."
                             tool_call_detected = True
@@ -89,12 +90,27 @@ if prompt := st.chat_input("What can I help you with?"):
                         pass # Not a valid tool call chunk
 
             with st.spinner(spinner_message):
-                full_response = ""
                 placeholder = st.empty()
 
-                # Function to process a line
-                def process_line(line):
-                    nonlocal full_response
+                # Process the first line if we have it
+                if first_line and not tool_call_detected:
+                    if first_line:
+                        decoded_line = first_line.decode('utf-8')
+                        if decoded_line.startswith("data: "):
+                            content = decoded_line[len("data: "):]
+                            if content != "[DONE]":
+                                try:
+                                    chunk = json.loads(content)
+                                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                    content_chunk = delta.get("content", "")
+                                    if content_chunk:
+                                        full_response += content_chunk
+                                        placeholder.markdown(full_response + "▌")
+                                except (json.JSONDecodeError, IndexError):
+                                    pass # Ignore malformed chunks
+
+                # Process the rest of the stream
+                for line in lines:
                     if line:
                         decoded_line = line.decode('utf-8')
                         if decoded_line.startswith("data: "):
@@ -110,18 +126,10 @@ if prompt := st.chat_input("What can I help you with?"):
                                 except (json.JSONDecodeError, IndexError):
                                     pass # Ignore malformed chunks
                 
-                # Process the first line if we have it
-                if first_line and not tool_call_detected:
-                     process_line(first_line)
-
-                # Process the rest of the stream
-                for line in lines:
-                    process_line(line)
-                
                 placeholder.markdown(full_response)
         
-        if full_response:
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            if full_response:
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except requests.exceptions.RequestException as e:
         st.error(f"Could not connect to the API server. Is it running? Error: {e}")

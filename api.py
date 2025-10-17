@@ -26,6 +26,7 @@ import subprocess
 import sys
 
 from nfl import get_current_week_schedule, get_game_statistics, get_game_roster
+from nba import get_daily_schedule, get_daily_injuries, get_game_summary
 
 # --- Tool Definitions & Schema ---
 
@@ -33,6 +34,9 @@ AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
     "get_game_statistics": get_game_statistics,
     "get_game_roster": get_game_roster,
+    "get_daily_schedule": get_daily_schedule,
+    "get_daily_injuries": get_daily_injuries,
+    "get_game_summary": get_game_summary,
 }
 
 tools_schema = [
@@ -81,6 +85,73 @@ tools_schema = [
                 "required": ["game_id"],
             },
         },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_daily_schedule",
+            "description": "Fetches the NBA daily schedule for a given date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {
+                        "type": "integer",
+                        "description": "The year of the schedule to fetch."
+                    },
+                    "month": {
+                        "type": "integer",
+                        "description": "The month of the schedule to fetch."
+                    },
+                    "day": {
+                        "type": "integer",
+                        "description": "The day of the schedule to fetch."
+                    }
+                },
+                "required": ["year", "month", "day"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_daily_injuries",
+            "description": "Fetches the NBA daily injuries for a given date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {
+                        "type": "integer",
+                        "description": "The year of the injuries to fetch."
+                    },
+                    "month": {
+                        "type": "integer",
+                        "description": "The month of the injuries to fetch."
+                    },
+                    "day": {
+                        "type": "integer",
+                        "description": "The day of the injuries to fetch."
+                    }
+                },
+                "required": ["year", "month", "day"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_game_summary",
+            "description": "Fetches the game summary for a given NBA game using its unique game ID.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the game."
+                    }
+                },
+                "required": ["game_id"],
+            },
+        },
     }
 ]
 
@@ -105,6 +176,7 @@ async def list_models():
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
+    print(f"Received request for model: {request.model}")
     # (The existing robust logic will handle the new tool)
     try:
         with open("system_prompt.txt", "r") as f:
