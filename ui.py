@@ -25,7 +25,7 @@ with st.sidebar:
 
 # Main chat interface
 st.title("Reki - AI Assistant")
-st.caption("I can search the web and find today's soccer matches. Ask me anything!")
+st.caption("I can search the web and get the current NFL schedule. Ask me anything!")
 
 # Initialize chat history in session state if it doesn't exist
 if "messages" not in st.session_state:
@@ -58,14 +58,43 @@ if prompt := st.chat_input("What can I help you with?"):
     # --- Call the API and handle the stream ---
     try:
         with st.chat_message("assistant", avatar='💡'):
-            with st.spinner("Reki is thinking..."):
-                response = requests.post(API_URL, json=payload, stream=True)
-                response.raise_for_status()
-                
+            spinner_message = "Reki is thinking..."
+            
+            # Peek at the first part of the stream to see if a tool is being called
+            response = requests.post(API_URL, json=payload, stream=True)
+            response.raise_for_status()
+            
+            # We need to handle the stream carefully
+            lines = response.iter_lines()
+            
+            try:
+                first_line = next(lines)
+            except StopIteration:
+                first_line = None
+
+            tool_call_detected = False
+            if first_line and first_line.decode('utf-8').startswith("data: "):
+                content = first_line.decode('utf-8')[len("data: "):]
+                if content != "[DONE]":
+                    try:
+                        chunk = json.loads(content)
+                        if chunk.get("choices", [{}])[0].get("delta", {}).get("tool_calls"):
+                            tool_name = chunk["choices"][0]["delta"]["tool_calls"][0]["function"]["name"]
+                            if "nfl" in tool_name or "schedule" in tool_name:
+                                spinner_message = "Calling NFL tool... 🏈"
+                            else:
+                                spinner_message = f"Calling tool: `{tool_name}`..."
+                            tool_call_detected = True
+                    except (json.JSONDecodeError, IndexError):
+                        pass # Not a valid tool call chunk
+
+            with st.spinner(spinner_message):
                 full_response = ""
                 placeholder = st.empty()
-                
-                for line in response.iter_lines():
+
+                # Function to process a line
+                def process_line(line):
+                    nonlocal full_response
                     if line:
                         decoded_line = line.decode('utf-8')
                         if decoded_line.startswith("data: "):
@@ -78,12 +107,21 @@ if prompt := st.chat_input("What can I help you with?"):
                                     if content_chunk:
                                         full_response += content_chunk
                                         placeholder.markdown(full_response + "▌")
-                                except json.JSONDecodeError:
-                                    st.error(f"Failed to decode JSON chunk: {content}")
+                                except (json.JSONDecodeError, IndexError):
+                                    pass # Ignore malformed chunks
+                
+                # Process the first line if we have it
+                if first_line and not tool_call_detected:
+                     process_line(first_line)
+
+                # Process the rest of the stream
+                for line in lines:
+                    process_line(line)
                 
                 placeholder.markdown(full_response)
         
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        if full_response:
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except requests.exceptions.RequestException as e:
         st.error(f"Could not connect to the API server. Is it running? Error: {e}")
