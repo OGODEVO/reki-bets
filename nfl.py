@@ -72,6 +72,41 @@ def get_game_statistics(
         print(f"Error fetching game statistics from Sportradar API: {e}")
         return None
 
+def get_game_roster(
+    game_id: str,
+    access_level: str = "trial",
+    language_code: str = "en",
+    version: str = "v7",
+    file_format: str = "json",
+) -> dict:
+    """
+    Retrieves the roster for a specific NFL game from the Sportradar API.
+
+    Args:
+        game_id: The unique identifier for the game.
+        access_level: The API access level.
+        language_code: The language code for the response.
+        version: The API version.
+        file_format: The response format.
+
+    Returns:
+        A dictionary containing the game's roster.
+    """
+    api_key = os.getenv("SPORTRADAR_API_KEY")
+    if not api_key:
+        raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
+
+    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/games/{game_id}/roster.{file_format}"
+    params = {"api_key": api_key}
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching game roster from Sportradar API: {e}")
+        return None
+
 if __name__ == "__main__":
     print("--- Fetching Current Week Schedule ---")
     schedule = get_current_week_schedule()
@@ -83,7 +118,14 @@ if __name__ == "__main__":
         stats = get_game_statistics(game_id=first_game_id)
         if stats:
             print("Successfully fetched game statistics.")
-            # Print a small part of the stats to verify
             print("Summary:", stats.get("summary"))
+
+        print(f"\n--- Fetching Roster for Game ID: {first_game_id} ---")
+        roster = get_game_roster(game_id=first_game_id)
+        if roster:
+            print("Successfully fetched game roster.")
+            # Print a small part of the roster to verify
+            print("Home Team Roster Size:", len(roster.get("home", {}).get("players", [])))
+            print("Away Team Roster Size:", len(roster.get("away", {}).get("players", [])))
     else:
         print("Could not fetch schedule or no games found in the current week.")

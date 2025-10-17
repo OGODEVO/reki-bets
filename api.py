@@ -25,13 +25,14 @@ if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY])
 import subprocess
 import sys
 
-from nfl import get_current_week_schedule, get_game_statistics
+from nfl import get_current_week_schedule, get_game_statistics, get_game_roster
 
 # --- Tool Definitions & Schema ---
 
 AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
     "get_game_statistics": get_game_statistics,
+    "get_game_roster": get_game_roster,
 }
 
 tools_schema = [
@@ -52,6 +53,23 @@ tools_schema = [
         "function": {
             "name": "get_game_statistics",
             "description": "Fetches detailed statistics for a specific NFL game using its unique game ID.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the game."
+                    }
+                },
+                "required": ["game_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_game_roster",
+            "description": "Fetches the complete game roster for both teams in a specific NFL game.",
             "parameters": {
                 "type": "object",
                 "properties": {
