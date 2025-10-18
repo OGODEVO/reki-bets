@@ -27,6 +27,7 @@ import sys
 
 from nfl import get_current_week_schedule, get_game_statistics, get_game_roster
 from nba import get_daily_schedule, get_daily_injuries, get_game_summary
+from odds import get_daily_schedule_odds
 
 # --- Tool Definitions & Schema ---
 
@@ -37,9 +38,31 @@ AVAILABLE_TOOLS = {
     "get_daily_schedule": get_daily_schedule,
     "get_daily_injuries": get_daily_injuries,
     "get_game_summary": get_game_summary,
+    "get_daily_schedule_odds": get_daily_schedule_odds,
 }
 
 tools_schema = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_daily_schedule_odds",
+            "description": "Fetches the daily schedule odds for a given sport ID and date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the sport."
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "The date for which to fetch the schedule odds (format: YYYY-MM-DD)."
+                    }
+                },
+                "required": ["sport_id", "date"],
+            },
+        },
+    },
     {
         "type": "function",
         "function": {
