@@ -6,12 +6,21 @@ from dotenv import load_dotenv
 load_dotenv()
 SPORTRADAR_API_KEY = os.getenv("SPORTRADAR_API_KEY")
 
-def get_daily_schedule_odds(sport_id: str, date: str):
+SPORT_IDS = {
+    "basketball": "sr:sport:2",
+    "american_football": "sr:sport:16"
+}
+
+def get_daily_schedule_odds(sport_name: str, date: str):
     """
-    Fetches the daily schedule odds for a given sport ID and date.
+    Fetches the daily schedule odds for a given sport name and date.
     """
     if not SPORTRADAR_API_KEY:
         return "Sportradar API key not found."
+
+    sport_id = SPORT_IDS.get(sport_name.lower())
+    if not sport_id:
+        return f"Invalid sport name: {sport_name}. Valid options are: {list(SPORT_IDS.keys())}"
 
     url = f"https://api.sportradar.com/oddscomparison-prematch/trial/v2/en/sports/{sport_id}/schedules/{date}/schedules.json?api_key={SPORTRADAR_API_KEY}"
     
