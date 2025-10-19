@@ -187,7 +187,7 @@ class ChatMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
-    stream: Optional[bool] = False
+    stream: Optional[bool] = True
 
 app = FastAPI()
 client = OpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
