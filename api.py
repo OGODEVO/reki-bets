@@ -118,9 +118,9 @@ tools_schema = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "team_id": {
+                    "team_identifier": {
                         "type": "string",
-                        "description": "The unique identifier for the team."
+                        "description": "The name, abbreviation, or unique identifier for the team."
                     },
                     "season_year": {
                         "type": "string",
@@ -131,7 +131,7 @@ tools_schema = [
                         "description": "The type of season (e.g., REG, PRE, PST)."
                     }
                 },
-                "required": ["team_id", "season_year", "season_type"],
+                "required": ["team_identifier", "season_year", "season_type"],
             },
         },
     },

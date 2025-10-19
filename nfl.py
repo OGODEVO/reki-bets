@@ -1,4 +1,5 @@
 import os
+import uuid
 import requests
 from dotenv import load_dotenv
 
@@ -39,6 +40,29 @@ NFL_TEAMS = {
     "Tennessee Titans": "d26a1ca5-722d-4274-8f97-c92e49c96315",
     "Minnesota Vikings": "33405046-04ee-4058-a950-d606f8c30852",
 }
+
+ABBREVIATIONS = {
+    "ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons", "BAL": "Baltimore Ravens",
+    "BUF": "Buffalo Bills", "CAR": "Carolina Panthers", "CHI": "Chicago Bears",
+    "CIN": "Cincinnati Bengals", "CLE": "Cleveland Browns", "DAL": "Dallas Cowboys",
+    "DEN": "Denver Broncos", "DET": "Detroit Lions", "GB": "Green Bay Packers",
+    "HOU": "Houston Texans", "IND": "Indianapolis Colts", "JAX": "Jacksonville Jaguars",
+    "KC": "Kansas City Chiefs", "LV": "Las Vegas Raiders", "LAC": "Los Angeles Chargers",
+    "LAR": "Los Angeles Rams", "MIA": "Miami Dolphins", "MIN": "Minnesota Vikings",
+    "NE": "New England Patriots", "NO": "New Orleans Saints", "NYG": "New York Giants",
+    "NYJ": "New York Jets", "PHI": "Philadelphia Eagles", "PIT": "Pittsburgh Steelers",
+    "SF": "San Francisco 49ers", "SEA": "Seattle Seahawks", "TB": "Tampa Bay Buccaneers",
+    "TEN": "Tennessee Titans", "WAS": "Washington Commanders",
+}
+
+TEAM_LOOKUP = {}
+for full_name, team_id in NFL_TEAMS.items():
+    TEAM_LOOKUP[full_name.lower()] = team_id
+    mascot = full_name.split()[-1]
+    TEAM_LOOKUP[mascot.lower()] = team_id
+for abbr, full_name in ABBREVIATIONS.items():
+    if full_name in NFL_TEAMS:
+        TEAM_LOOKUP[abbr.lower()] = NFL_TEAMS[full_name]
 
 def get_current_week_schedule(
     access_level: str = "trial",
@@ -144,9 +168,9 @@ def get_game_roster(
         return None
 
 def get_team_season_stats(
-    team_id: str,
-    season_year: str,
-    season_type: str,
+    team_identifier: str,
+    season_year: str = "2025",
+    season_type: str = "reg",
     access_level: str = "trial",
     language_code: str = "en",
     version: str = "v7",
@@ -156,7 +180,7 @@ def get_team_season_stats(
     Retrieves the seasonal statistics for a specific NFL team from the Sportradar API.
 
     Args:
-        team_id: The unique identifier for the team.
+        team_identifier: The name, abbreviation, or unique identifier for the team.
         season_year: The year of the season.
         season_type: The type of season (e.g., REG, PRE, PST).
         access_level: The API access level.
@@ -171,7 +195,20 @@ def get_team_season_stats(
     if not api_key:
         raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
 
-    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/seasons/{season_year}/{season_type}/teams/{team_id}/statistics.{file_format}"
+    resolved_team_id = None
+    try:
+        # Check if the identifier is a valid UUID
+        uuid.UUID(team_identifier)
+        resolved_team_id = team_identifier
+    except ValueError:
+        # If not a UUID, look it up in our dictionary
+        resolved_team_id = TEAM_LOOKUP.get(team_identifier.lower())
+
+    if not resolved_team_id:
+        print(f"Error: Could not find a valid team ID for '{team_identifier}'")
+        return None
+
+    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/seasons/{season_year}/{season_type}/teams/{resolved_team_id}/statistics.{file_format}"
     params = {"api_key": api_key}
 
     try:
@@ -199,20 +236,20 @@ if __name__ == "__main__":
         roster = get_game_roster(game_id=first_game_id)
         if roster:
             print("Successfully fetched game roster.")
-            # Print a small part of the roster to verify
             print("Home Team Roster Size:", len(roster.get("home", {}).get("players", [])))
             print("Away Team Roster Size:", len(roster.get("away", {}).get("players", [])))
         
-        print(f"\n--- Fetching Team Season Stats ---")
-        team_name = "San Francisco 49ers"
-        team_id = NFL_TEAMS.get(team_name)
-        if team_id:
-            season_stats = get_team_season_stats(team_id=team_id, season_year="2023", season_type="REG")
+        print(f"\n--- Fetching Team Season Stats (Testing Multiple Identifiers) ---")
+        test_teams = ["Jacksonville Jaguars", "KC", "Ravens", "f0e724b0-4cbf-495a-be47-013907608da9"] # Full name, abbreviation, mascot, UUID
+    
+        for team_identifier in test_teams:
+            print(f"\n--- Testing with identifier: '{team_identifier}' ---")
+            season_stats = get_team_season_stats(team_identifier=team_identifier)
             if season_stats:
-                print(f"Successfully fetched season stats for {team_name}.")
+                print(f"Successfully fetched season stats.")
                 print("Record:", season_stats.get("record"))
-        else:
-            print(f"Could not find team ID for {team_name}.")
+            else:
+                print(f"Could not find season stats for '{team_identifier}'.")
 
     else:
         print("Could not fetch schedule or no games found in the current week.")

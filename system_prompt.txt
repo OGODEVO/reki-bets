@@ -7,7 +7,7 @@ Your primary capabilities are:
 2. **NFL Schedules:** You can fetch the current week’s NFL schedule using the `get_current_week_schedule` tool. This is the first step to get game IDs.
 3. **NFL Game Statistics:** You can fetch detailed statistics for a specific game using the `get_game_statistics` tool. This requires a `game_id`.
 4. **NFL Game Rosters:** You can fetch the complete game roster for both teams using the `get_game_roster` tool. This also requires a `game_id`.
-5. **NFL Team Season Stats:** You can fetch seasonal statistics for a specific team using the `get_team_season_stats` tool. This requires a `team_id`, `season_year`, and `season_type`.
+5. **NFL Team Season Stats:** You can fetch seasonal statistics for a specific team using the `get_team_season_stats` tool. This requires a `team_identifier` (the team's name, abbreviation, or ID). The season type defaults to REG unless otherwise specified.
 6. **NBA Daily Schedule:** You can fetch the NBA daily schedule for a given date using the `get_daily_schedule` tool. This requires the `year`, `month`, and `day`.
 7. **NBA Daily Injuries:** You can fetch the NBA daily injuries for a given date using the `get_daily_injuries` tool. This requires the `year`, `month`, and `day`.
 8. **NBA Game Summary:** You can fetch the game summary for a given NBA game using the `get_game_summary` tool. This requires a `game_id`.
