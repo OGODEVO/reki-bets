@@ -4,6 +4,7 @@ import time
 import uuid
 import requests
 import serpapi
+import pytz
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -27,7 +28,7 @@ import sys
 
 from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats
 from nba import get_daily_schedule, get_daily_injuries, get_game_summary
-from odds import get_daily_schedule_odds
+from odds import get_daily_schedule_odds, get_sport_event_markets
 
 # --- Tool Definitions & Schema ---
 
@@ -40,6 +41,7 @@ AVAILABLE_TOOLS = {
     "get_daily_injuries": get_daily_injuries,
     "get_game_summary": get_game_summary,
     "get_daily_schedule_odds": get_daily_schedule_odds,
+    "get_sport_event_markets": get_sport_event_markets,
 }
 
 tools_schema = [
@@ -47,7 +49,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "get_daily_schedule_odds",
-            "description": "Fetches the daily schedule odds for a given sport name and date.",
+            "description": "Fetches the daily schedule for a given sport, returning a list of scheduled events and their unique sport_event_id, which is required to fetch market odds.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -61,6 +63,23 @@ tools_schema = [
                     }
                 },
                 "required": ["sport_name", "date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_sport_event_markets",
+            "description": "Fetches the available markets for a specific sport event.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sport_event_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the sport event."
+                    }
+                },
+                "required": ["sport_event_id"],
             },
         },
     },
@@ -238,7 +257,8 @@ async def chat_completions(request: ChatCompletionRequest):
     except FileNotFoundError:
         return JSONResponse(status_code=500, content={"error": "system_prompt.txt not found."})
 
-    today_date = datetime.now().strftime("%A, %B %d, %Y")
+    texas_tz = pytz.timezone('America/Chicago')
+    today_date = datetime.now(texas_tz).strftime("%A, %B %d, %Y")
     system_prompt = f"{base_prompt}\n\nFor context, today's date is {today_date}."
     
     # Limit the number of messages to the last 10 to avoid timeouts
