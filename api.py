@@ -25,7 +25,7 @@ if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY])
 import subprocess
 import sys
 
-from nfl import get_current_week_schedule, get_game_statistics, get_game_roster
+from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats
 from nba import get_daily_schedule, get_daily_injuries, get_game_summary
 from odds import get_daily_schedule_odds
 
@@ -35,6 +35,7 @@ AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
     "get_game_statistics": get_game_statistics,
     "get_game_roster": get_game_roster,
+    "get_team_season_stats": get_team_season_stats,
     "get_daily_schedule": get_daily_schedule,
     "get_daily_injuries": get_daily_injuries,
     "get_game_summary": get_game_summary,
@@ -106,6 +107,31 @@ tools_schema = [
                     }
                 },
                 "required": ["game_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_team_season_stats",
+            "description": "Fetches the seasonal statistics for a specific NFL team.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "team_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the team."
+                    },
+                    "season_year": {
+                        "type": "string",
+                        "description": "The year of the season."
+                    },
+                    "season_type": {
+                        "type": "string",
+                        "description": "The type of season (e.g., REG, PRE, PST)."
+                    }
+                },
+                "required": ["team_id", "season_year", "season_type"],
             },
         },
     },
