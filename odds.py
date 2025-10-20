@@ -32,6 +32,13 @@ def get_sport_event_markets(sport_event_id: str) -> dict:
     Fetches and filters the available pre-match markets (moneyline, spread, total) for a specific sport event,
     returning only essential fields.
     """
+    # Hardcoded guardrail to prevent the agent from using the wrong ID type.
+    if not sport_event_id.startswith("sr:sport_event:"):
+        return {
+            "status": "error",
+            "message": "Invalid ID format. This tool requires a 'sport_event_id' (e.g., 'sr:sport_event:12345'), not a 'game_id' (UUID). Please use the 'get_daily_schedule_odds' tool first to get the correct ID."
+        }
+
     endpoint = f"sport_events/{sport_event_id}/sport_event_markets.json"
     all_markets_data = odds_client._make_request(endpoint)
 
