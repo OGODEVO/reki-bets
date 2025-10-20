@@ -96,13 +96,13 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "get_sport_event_markets",
-            "description": "Fetches the available markets for a specific sport event.",
+            "description": "Fetches the available betting markets for a specific sport event. Requires a `sport_event_id` (e.g., 'sr:sport_event:12345'), not a `game_id`.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "sport_event_id": {
                         "type": "string",
-                        "description": "The unique identifier for the sport event."
+                        "description": "The unique identifier for the sport event, which MUST start with 'sr:sport_event:'."
                     }
                 },
                 "required": ["sport_event_id"],
