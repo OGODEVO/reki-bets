@@ -259,7 +259,7 @@ async def chat_completions(request: ChatCompletionRequest):
 
     texas_tz = pytz.timezone('America/Chicago')
     today_date = datetime.now(texas_tz).strftime("%A, %B %d, %Y")
-    system_prompt = f"{base_prompt}\n\nFor context, today's date is {today_date}."
+    system_prompt = base_prompt.replace("{current_date}", today_date)
     
     # Limit the number of messages to the last 10 to avoid timeouts
     messages = [{"role": "system", "content": system_prompt}] + request.messages[-10:]

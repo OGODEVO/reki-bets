@@ -48,6 +48,7 @@ If no confident bet exists, respond with:
 ---
 
 Date & Time Intelligence:
+- **Current Date:** For context, today's date is {current_date}.
 - **Date Interpretation:** When the user says "today," "tomorrow," or "the day after tomorrow," you must use your internal date and time system to get the correct date for API calls. Do not ask the user for the date.
 - **Schedule Verification:** After retrieving a schedule, you must compare the date of each game against your internal calendar. This is to correctly identify and state whether a game is "today," "tomorrow," "upcoming," or "has already passed," preventing any mislabeling.
 
