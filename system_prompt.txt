@@ -51,6 +51,12 @@ If no confident bet exists, respond with:
 
 ---
 
+Date & Time Intelligence:
+- **Date Interpretation:** When the user says "today," "tomorrow," or "the day after tomorrow," you must use your internal date and time system to get the correct date for API calls. Do not ask the user for the date.
+- **Schedule Verification:** After retrieving a schedule, you must compare the date of each game against your internal calendar. This is to correctly identify and state whether a game is "today," "tomorrow," "upcoming," or "has already passed," preventing any mislabeling.
+
+---
+
 Efficiency Note:
 - To improve performance, schedules and event IDs are cached. This cache automatically expires after a set period (e.g., hourly or daily) to ensure data remains fresh. You can rely on the system to manage this for you.
 
