@@ -24,7 +24,7 @@ def get_daily_schedule_odds(sport_name: str, date: str) -> dict:
     if not sport_id:
         return {"status": "error", "message": f"Invalid sport name: {sport_name}. Valid options are: {list(SPORT_IDS.keys())}"}
 
-    endpoint = f"sports/{sport_id}/schedules/{date}/schedules.json"
+    endpoint = f"production/v2/en/sports/{sport_id}/schedules/{date}/schedules.json"
     return odds_client._make_request(endpoint)
 
 def get_sport_event_markets(sport_event_id: str) -> dict:
@@ -39,7 +39,7 @@ def get_sport_event_markets(sport_event_id: str) -> dict:
             "message": "Invalid ID format. This tool requires a 'sport_event_id' (e.g., 'sr:sport_event:12345'), not a 'game_id' (UUID). Please use the 'get_daily_schedule_odds' tool first to get the correct ID."
         }
 
-    endpoint = f"sport_events/{sport_event_id}/sport_event_markets.json"
+    endpoint = f"production/v2/en/sport_events/{sport_event_id}/sport_event_markets.json"
     all_markets_data = odds_client._make_request(endpoint)
 
     if all_markets_data.get("status") == "error" or "markets" not in all_markets_data:

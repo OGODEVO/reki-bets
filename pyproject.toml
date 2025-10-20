@@ -12,4 +12,6 @@ dependencies = [
     "requests",
     "serpapi",
     "cachetools",
+    "streamlit",
+    "serpapi",
 ]

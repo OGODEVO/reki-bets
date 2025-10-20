@@ -44,4 +44,4 @@ SPORTRADAR_API_KEY = os.getenv("SPORTRADAR_API_KEY")
 # Create and export sport-specific clients
 nfl_client = SportRadarClient(api_key=SPORTRADAR_API_KEY, base_url="https://api.sportradar.com/nfl/official/production/v7/en")
 nba_client = SportRadarClient(api_key=SPORTRADAR_API_KEY, base_url="https://api.sportradar.com/nba/production/v8/en")
-odds_client = SportRadarClient(api_key=SPORTRADAR_API_KEY, base_url="https://api.sportradar.com/oddscomparison-prematch/production/v2/en")
+odds_client = SportRadarClient(api_key=SPORTRADAR_API_KEY, base_url="https://api.sportradar.com/oddscomparison-prematch")
