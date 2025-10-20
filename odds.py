@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime, timedelta
+from cachetools import cached, TTLCache
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,6 +13,10 @@ SPORT_IDS = {
     "american_football": "sr:sport:16"
 }
 
+# Cache for the daily odds schedule, expires every hour
+odds_cache = TTLCache(maxsize=256, ttl=3600)
+
+@cached(odds_cache)
 def get_daily_schedule_odds(sport_name: str, date: str):
     """
     Fetches the daily schedule for a given sport, returning a list of scheduled events

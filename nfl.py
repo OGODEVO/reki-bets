@@ -1,6 +1,7 @@
 import os
 import uuid
 import requests
+from cachetools import cached, TTLCache
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -64,6 +65,10 @@ for abbr, full_name in ABBREVIATIONS.items():
     if full_name in NFL_TEAMS:
         TEAM_LOOKUP[abbr.lower()] = NFL_TEAMS[full_name]
 
+# Cache for the weekly schedule, expires every 24 hours
+schedule_cache = TTLCache(maxsize=10, ttl=86400)
+
+@cached(schedule_cache)
 def get_current_week_schedule(
     access_level: str = "trial",
     language_code: str = "en",

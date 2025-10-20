@@ -1,6 +1,11 @@
 import os
 import requests
+from cachetools import cached, TTLCache
 
+# Cache for the daily schedule, expires every 12 hours
+schedule_cache = TTLCache(maxsize=128, ttl=43200)
+
+@cached(schedule_cache)
 def get_daily_schedule(year: int, month: int, day: int):
     """
     Fetches the NBA daily schedule for a given date.
