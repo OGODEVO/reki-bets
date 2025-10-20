@@ -305,16 +305,20 @@ async def chat_completions(request: ChatCompletionRequest):
                 for tool_call in full_tool_calls:
                     function_name = tool_call["function"]["name"]
                     function_to_call = AVAILABLE_TOOLS.get(function_name)
-                    if not function_to_call: continue
+                    if not function_to_call:
+                        continue
 
-                    function_args = json.loads(tool_call["function"]["arguments"])
-                    function_response = function_to_call(**function_args) if function_args else function_to_call()
-                    
+                    try:
+                        function_args = json.loads(tool_call["function"]["arguments"])
+                        function_response = function_to_call(**function_args) if function_args else function_to_call()
+                    except Exception as e:
+                        function_response = {"status": "error", "error": str(e)}
+
                     messages.append({
                         "tool_call_id": tool_call["id"],
                         "role": "tool",
                         "name": function_name,
-                        "content": json.dumps(function_response)
+                        "content": json.dumps(function_response),
                     })
                 
                 # Stream the final response from the model

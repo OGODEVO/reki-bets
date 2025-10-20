@@ -92,10 +92,10 @@ def get_current_week_schedule(
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        return {"status": "ok", "data": response.json()}
     except requests.exceptions.RequestException as e:
         print(f"Error fetching schedule from Sportradar API: {e}")
-        return None
+        return {"status": "error", "error": str(e)}
 
 def get_game_statistics(
     game_id: str,
@@ -129,10 +129,10 @@ def get_game_statistics(
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        return {"status": "ok", "data": response.json()}
     except requests.exceptions.RequestException as e:
         print(f"Error fetching game statistics from Sportradar API: {e}")
-        return None
+        return {"status": "error", "error": str(e)}
 
 def get_game_roster(
     game_id: str,
@@ -164,10 +164,10 @@ def get_game_roster(
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        return {"status": "ok", "data": response.json()}
     except requests.exceptions.RequestException as e:
         print(f"Error fetching game roster from Sportradar API: {e}")
-        return None
+        return {"status": "error", "error": str(e)}
 
 def get_team_season_stats(
     team_identifier: str,
@@ -207,8 +207,9 @@ def get_team_season_stats(
         resolved_team_id = TEAM_LOOKUP.get(team_identifier.lower())
 
     if not resolved_team_id:
-        print(f"Error: Could not find a valid team ID for '{team_identifier}'")
-        return None
+        error_msg = f"Error: Could not find a valid team ID for '{team_identifier}'"
+        print(error_msg)
+        return {"status": "error", "error": error_msg}
 
     url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/seasons/{season_year}/{season_type}/teams/{resolved_team_id}/statistics.{file_format}"
     params = {"api_key": api_key}
@@ -216,10 +217,10 @@ def get_team_season_stats(
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        return {"status": "ok", "data": response.json()}
     except requests.exceptions.RequestException as e:
         print(f"Error fetching team season stats from Sportradar API: {e}")
-        return None
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
     print("--- Fetching Current Week Schedule ---")

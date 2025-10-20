@@ -18,20 +18,20 @@ def get_daily_schedule_odds(sport_name: str, date: str):
     and their unique sport_event_id, which is required to fetch market odds.
     """
     if not SPORTRADAR_API_KEY:
-        return "Sportradar API key not found."
+        return {"status": "error", "error": "Sportradar API key not found."}
 
     sport_id = SPORT_IDS.get(sport_name.lower())
     if not sport_id:
-        return f"Invalid sport name: {sport_name}. Valid options are: {list(SPORT_IDS.keys())}"
+        return {"status": "error", "error": f"Invalid sport name: {sport_name}. Valid options are: {list(SPORT_IDS.keys())}"}
 
     url = f"https://api.sportradar.com/oddscomparison-prematch/trial/v2/en/sports/{sport_id}/schedules/{date}/schedules.json?api_key={SPORTRADAR_API_KEY}"
     
     try:
         response = requests.get(url)
         response.raise_for_status()
-        return response.json()
+        return {"status": "ok", "data": response.json()}
     except requests.exceptions.RequestException as e:
-        return f"Error fetching data: {e}"
+        return {"status": "error", "error": f"Error fetching data: {e}"}
 
 def get_sport_event_markets(
     sport_event_id: str,
@@ -44,7 +44,7 @@ def get_sport_event_markets(
     returning only essential fields.
     """
     if not SPORTRADAR_API_KEY:
-        return "Sportradar API key not found."
+        return {"status": "error", "error": "Sportradar API key not found."}
 
     url = f"https://api.sportradar.com/oddscomparison-prematch/{access_level}/v2/{language_code}/sport_events/{sport_event_id}/sport_event_markets.{file_format}?api_key={SPORTRADAR_API_KEY}"
     
@@ -54,7 +54,7 @@ def get_sport_event_markets(
         all_markets_data = response.json()
         
         if "markets" not in all_markets_data:
-            return all_markets_data
+            return {"status": "ok", "data": all_markets_data}
 
         target_markets = ["moneyline", "spread", "total"]
         
@@ -81,10 +81,10 @@ def get_sport_event_markets(
             ]
 
         all_markets_data["markets"] = filtered_markets
-        return all_markets_data
+        return {"status": "ok", "data": all_markets_data}
         
     except requests.exceptions.RequestException as e:
-        return f"Error fetching data: {e}"
+        return {"status": "error", "error": f"Error fetching data: {e}"}
 
 if __name__ == "__main__":
     # Get tomorrow's date for the schedule
