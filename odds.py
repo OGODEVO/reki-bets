@@ -40,7 +40,7 @@ def get_sport_event_markets(
     file_format: str = "json",
 ):
     """
-    Fetches and filters the available markets (moneyline, spread, total) for a specific sport event,
+    Fetches and filters the available pre-match markets (moneyline, spread, total) for a specific sport event,
     returning only essential fields.
     """
     if not SPORTRADAR_API_KEY:

@@ -105,7 +105,9 @@ def get_game_statistics(
     file_format: str = "json",
 ) -> dict:
     """
-    Retrieves the statistics for a specific NFL game from the Sportradar API.
+    Retrieves statistics for a specific NFL game, including live, in-progress games.
+
+    To get the game_id for a specific game, use the `get_current_week_schedule` function.
 
     Args:
         game_id: The unique identifier for the game.
