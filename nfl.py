@@ -1,8 +1,11 @@
 import os
 import uuid
-import requests
+from datetime import datetime
 from cachetools import cached, TTLCache
 from dotenv import load_dotenv
+
+# Assuming sportradar_client is initialized in client.py and imported
+from client import nfl_client as sportradar_client
 
 load_dotenv()
 
@@ -69,195 +72,121 @@ for abbr, full_name in ABBREVIATIONS.items():
 schedule_cache = TTLCache(maxsize=10, ttl=86400)
 
 @cached(schedule_cache)
-def get_current_week_schedule(
-    access_level: str = "production",
-    language_code: str = "en",
-    version: str = "v7",
-    file_format: str = "json",
-) -> dict:
+def get_current_week_schedule() -> dict:
+    """Retrieves the NFL schedule for the current week."""
+    endpoint = "games/current_week/schedule.json"
+    return sportradar_client._make_request(endpoint)
+
+def find_game_by_teams_and_date(team1: str, team2: str, date: str) -> dict:
     """
-    Retrieves the NFL schedule for the current week from the Sportradar API.
+    Finds a specific game by team names and date.
 
     Args:
-        access_level: The API access level.
-        language_code: The language code for the response.
-        version: The API version.
-        file_format: The response format.
+        team1: The name of the first team.
+        team2: The name of the second team.
+        date: The date of the game in YYYY-MM-DD format.
 
     Returns:
-        A dictionary containing the current week's schedule information.
+        A dictionary containing the game's information or an error.
     """
-    api_key = os.getenv("SPORTRADAR_API_KEY")
-    if not api_key:
-        raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
-
-    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/games/current_week/schedule.{file_format}"
-    params = {"api_key": api_key}
-
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return {"status": "ok", "data": response.json()}
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching schedule from Sportradar API: {e}")
-        return {"status": "error", "error": str(e)}
+        game_date = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return {"status": "error", "message": "Invalid date format. Please use YYYY-MM-DD."}
 
-def get_game_statistics(
-    game_id: str,
-    access_level: str = "production",
-    language_code: str = "en",
-    version: str = "v7",
-    file_format: str = "json",
-) -> dict:
-    """
-    Retrieves statistics for a specific NFL game, including live, in-progress games.
+    schedule_data = get_current_week_schedule()
+    if schedule_data.get("status") == "error":
+        return schedule_data
 
-    To get the game_id for a specific game, use the `get_current_week_schedule` function.
+    games = schedule_data.get("week", {}).get("games", [])
+    
+    team1_lower = team1.lower()
+    team2_lower = team2.lower()
 
-    Args:
-        game_id: The unique identifier for the game.
-        access_level: The API access level.
-        language_code: The language code for the response.
-        version: The API version.
-        file_format: The response format.
+    for game in games:
+        game_scheduled_dt = datetime.fromisoformat(game["scheduled"])
+        if game_scheduled_dt.date() == game_date.date():
+            home_team_name = game["home"]["name"].lower()
+            away_team_name = game["away"]["name"].lower()
+            
+            if (team1_lower in home_team_name and team2_lower in away_team_name) or \
+               (team2_lower in home_team_name and team1_lower in away_team_name):
+                return {"status": "ok", "game": game}
 
-    Returns:
-        A dictionary containing the game's statistics.
-    """
-    api_key = os.getenv("SPORTRADAR_API_KEY")
-    if not api_key:
-        raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
+    return {"status": "not_found", "message": f"No game found between {team1} and {team2} on {date}."}
 
-    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/games/{game_id}/statistics.{file_format}"
-    params = {"api_key": api_key}
+def get_game_statistics(game_id: str) -> dict:
+    """Retrieves statistics for a specific NFL game."""
+    endpoint = f"games/{game_id}/statistics.json"
+    return sportradar_client._make_request(endpoint)
 
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return {"status": "ok", "data": response.json()}
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching game statistics from Sportradar API: {e}")
-        return {"status": "error", "error": str(e)}
-
-def get_game_roster(
-    game_id: str,
-    access_level: str = "production",
-    language_code: str = "en",
-    version: str = "v7",
-    file_format: str = "json",
-) -> dict:
-    """
-    Retrieves the roster for a specific NFL game from the Sportradar API.
-
-    Args:
-        game_id: The unique identifier for the game.
-        access_level: The API access level.
-        language_code: The language code for the response.
-        version: The API version.
-        file_format: The response format.
-
-    Returns:
-        A dictionary containing the game's roster.
-    """
-    api_key = os.getenv("SPORTRADAR_API_KEY")
-    if not api_key:
-        raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
-
-    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/games/{game_id}/roster.{file_format}"
-    params = {"api_key": api_key}
-
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return {"status": "ok", "data": response.json()}
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching game roster from Sportradar API: {e}")
-        return {"status": "error", "error": str(e)}
+def get_game_roster(game_id: str) -> dict:
+    """Retrievels the roster for a specific NFL game."""
+    endpoint = f"games/{game_id}/roster.json"
+    return sportradar_client._make_request(endpoint)
 
 def get_team_season_stats(
     team_identifier: str,
     season_year: str = "2025",
     season_type: str = "reg",
-    access_level: str = "production",
-    language_code: str = "en",
-    version: str = "v7",
-    file_format: str = "json",
 ) -> dict:
-    """
-    Retrieves the seasonal statistics for a specific NFL team from the Sportradar API.
-
-    Args:
-        team_identifier: The name, abbreviation, or unique identifier for the team.
-        season_year: The year of the season.
-        season_type: The type of season (e.g., REG, PRE, PST).
-        access_level: The API access level.
-        language_code: The language code for the response.
-        version: The API version.
-        file_format: The response format.
-
-    Returns:
-        A dictionary containing the team's seasonal statistics.
-    """
-    api_key = os.getenv("SPORTRADAR_API_KEY")
-    if not api_key:
-        raise ValueError("SPORTRADAR_API_KEY not found in environment variables.")
-
-    resolved_team_id = None
-    try:
-        # Check if the identifier is a valid UUID
-        uuid.UUID(team_identifier)
-        resolved_team_id = team_identifier
-    except ValueError:
-        # If not a UUID, look it up in our dictionary
-        resolved_team_id = TEAM_LOOKUP.get(team_identifier.lower())
-
+    """Retrieves the seasonal statistics for a specific NFL team."""
+    resolved_team_id = TEAM_LOOKUP.get(team_identifier.lower())
     if not resolved_team_id:
-        error_msg = f"Error: Could not find a valid team ID for '{team_identifier}'"
-        print(error_msg)
-        return {"status": "error", "error": error_msg}
+        try:
+            uuid.UUID(team_identifier)
+            resolved_team_id = team_identifier
+        except ValueError:
+            return {"status": "error", "message": f"Could not find a valid team ID for '{team_identifier}'"}
 
-    url = f"https://api.sportradar.com/nfl/official/{access_level}/{version}/{language_code}/seasons/{season_year}/{season_type}/teams/{resolved_team_id}/statistics.{file_format}"
-    params = {"api_key": api_key}
-
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return {"status": "ok", "data": response.json()}
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching team season stats from Sportradar API: {e}")
-        return {"status": "error", "error": str(e)}
+    endpoint = f"seasons/{season_year}/{season_type}/teams/{resolved_team_id}/statistics.json"
+    return sportradar_client._make_request(endpoint)
 
 if __name__ == "__main__":
     print("--- Fetching Current Week Schedule ---")
     schedule = get_current_week_schedule()
-    if schedule and schedule.get("games"):
-        first_game_id = schedule["games"][0]["id"]
-        print(f"Successfully fetched schedule. Found game with ID: {first_game_id}")
+    if schedule.get("status") != "error":
+        print("Successfully fetched schedule.")
         
-        print(f"\n--- Fetching Statistics for Game ID: {first_game_id} ---")
-        stats = get_game_statistics(game_id=first_game_id)
-        if stats:
-            print("Successfully fetched game statistics.")
-            print("Summary:", stats.get("summary"))
+        # Test the new find_game function
+        if schedule.get("week", {}).get("games"):
+            first_game = schedule["week"]["games"][0]
+            home_team = first_game["home"]["name"]
+            away_team = first_game["away"]["name"]
+            game_date = datetime.fromisoformat(first_game["scheduled"]).strftime("%Y-%m-%d")
 
-        print(f"\n--- Fetching Roster for Game ID: {first_game_id} ---")
-        roster = get_game_roster(game_id=first_game_id)
-        if roster:
-            print("Successfully fetched game roster.")
-            print("Home Team Roster Size:", len(roster.get("home", {}).get("players", [])))
-            print("Away Team Roster Size:", len(roster.get("away", {}).get("players", [])))
-        
+            print(f"\n--- Finding Game: {away_team} at {home_team} on {game_date} ---")
+            found_game_info = find_game_by_teams_and_date(home_team, away_team, game_date)
+            if found_game_info.get("status") == "ok":
+                found_game = found_game_info["game"]
+                print(f"Successfully found game with ID: {found_game['id']}")
+                
+                game_id = found_game['id']
+                print(f"\n--- Fetching Statistics for Game ID: {game_id} ---")
+                stats = get_game_statistics(game_id=game_id)
+                if stats.get("status") != "error":
+                    print("Successfully fetched game statistics.")
+                else:
+                    print(f"Error fetching stats: {stats.get('message')}")
+
+                print(f"\n--- Fetching Roster for Game ID: {game_id} ---")
+                roster = get_game_roster(game_id=game_id)
+                if roster.get("status") != "error":
+                    print("Successfully fetched game roster.")
+                else:
+                    print(f"Error fetching roster: {roster.get('message')}")
+            else:
+                print(f"Could not find game: {found_game_info.get('message')}")
+
         print(f"\n--- Fetching Team Season Stats (Testing Multiple Identifiers) ---")
-        test_teams = ["Jacksonville Jaguars", "KC", "Ravens", "f0e724b0-4cbf-495a-be47-013907608da9"] # Full name, abbreviation, mascot, UUID
+        test_teams = ["Jacksonville Jaguars", "KC", "Ravens", "f0e724b0-4cbf-495a-be47-013907608da9"]
     
         for team_identifier in test_teams:
             print(f"\n--- Testing with identifier: '{team_identifier}' ---")
             season_stats = get_team_season_stats(team_identifier=team_identifier)
-            if season_stats:
-                print(f"Successfully fetched season stats.")
-                print("Record:", season_stats.get("record"))
+            if season_stats.get("status") != "error":
+                print(f"Successfully fetched season stats for {team_identifier}.")
             else:
-                print(f"Could not find season stats for '{team_identifier}'.")
-
+                print(f"Could not find season stats for '{team_identifier}': {season_stats.get('message')}")
     else:
-        print("Could not fetch schedule or no games found in the current week.")
+        print(f"Could not fetch schedule: {schedule.get('message')}")

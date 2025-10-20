@@ -26,7 +26,7 @@ if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY])
 import subprocess
 import sys
 
-from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats
+from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats, find_game_by_teams_and_date
 from nba import get_daily_schedule, get_daily_injuries, get_game_summary
 from odds import get_daily_schedule_odds, get_sport_event_markets
 
@@ -34,6 +34,7 @@ from odds import get_daily_schedule_odds, get_sport_event_markets
 
 AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
+    "find_game_by_teams_and_date": find_game_by_teams_and_date,
     "get_game_statistics": get_game_statistics,
     "get_game_roster": get_game_roster,
     "get_team_season_stats": get_team_season_stats,
@@ -45,6 +46,31 @@ AVAILABLE_TOOLS = {
 }
 
 tools_schema = [
+    {
+        "type": "function",
+        "function": {
+            "name": "find_game_by_teams_and_date",
+            "description": "Finds a specific NFL game by the names of the two teams and the date of the game.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "team1": {
+                        "type": "string",
+                        "description": "The name of the first team (e.g., 'Seattle Seahawks')."
+                    },
+                    "team2": {
+                        "type": "string",
+                        "description": "The name of the second team (e.g., 'Houston Texans')."
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "The date of the game in YYYY-MM-DD format."
+                    }
+                },
+                "required": ["team1", "team2", "date"],
+            },
+        },
+    },
     {
         "type": "function",
         "function": {
