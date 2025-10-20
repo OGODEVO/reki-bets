@@ -29,7 +29,7 @@ def get_daily_schedule_odds(sport_name: str, date: str):
     if not sport_id:
         return {"status": "error", "error": f"Invalid sport name: {sport_name}. Valid options are: {list(SPORT_IDS.keys())}"}
 
-    url = f"https://api.sportradar.com/oddscomparison-prematch/trial/v2/en/sports/{sport_id}/schedules/{date}/schedules.json?api_key={SPORTRADAR_API_KEY}"
+    url = f"https://api.sportradar.com/oddscomparison-prematch/production/v2/en/sports/{sport_id}/schedules/{date}/schedules.json?api_key={SPORTRADAR_API_KEY}"
     
     try:
         response = requests.get(url)
@@ -40,7 +40,7 @@ def get_daily_schedule_odds(sport_name: str, date: str):
 
 def get_sport_event_markets(
     sport_event_id: str,
-    access_level: str = "trial",
+    access_level: str = "production",
     language_code: str = "en",
     file_format: str = "json",
 ):

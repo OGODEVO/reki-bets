@@ -14,7 +14,7 @@ def get_daily_schedule(year: int, month: int, day: int):
     if not api_key:
         return {"status": "error", "error": "SPORTRADAR_API_KEY not found in environment variables."}
 
-    url = f"https://api.sportradar.com/nba/trial/v8/en/games/{year}/{month}/{day}/schedule.json"
+    url = f"https://api.sportradar.com/nba/production/v8/en/games/{year}/{month}/{day}/schedule.json"
     params = {"api_key": api_key}
 
     try:
@@ -32,7 +32,7 @@ def get_daily_injuries(year: int, month: int, day: int):
     if not api_key:
         return {"status": "error", "error": "SPORTRADAR_API_KEY not found in environment variables."}
 
-    url = f"https://api.sportradar.com/nba/trial/v8/en/league/{year}/{month}/{day}/daily_injuries.json"
+    url = f"https://api.sportradar.com/nba/production/v8/en/league/{year}/{month}/{day}/daily_injuries.json"
     params = {"api_key": api_key}
 
     try:
@@ -50,7 +50,7 @@ def get_game_summary(game_id: str):
     if not api_key:
         return {"status": "error", "error": "SPORTRADAR_API_KEY not found in environment variables."}
 
-    url = f"https://api.sportradar.com/nba/trial/v8/en/games/{game_id}/summary.json"
+    url = f"https://api.sportradar.com/nba/production/v8/en/games/{game_id}/summary.json"
     params = {"api_key": api_key}
 
     try:

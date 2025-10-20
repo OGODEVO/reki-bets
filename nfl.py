@@ -70,7 +70,7 @@ schedule_cache = TTLCache(maxsize=10, ttl=86400)
 
 @cached(schedule_cache)
 def get_current_week_schedule(
-    access_level: str = "trial",
+    access_level: str = "production",
     language_code: str = "en",
     version: str = "v7",
     file_format: str = "json",
@@ -104,7 +104,7 @@ def get_current_week_schedule(
 
 def get_game_statistics(
     game_id: str,
-    access_level: str = "trial",
+    access_level: str = "production",
     language_code: str = "en",
     version: str = "v7",
     file_format: str = "json",
@@ -141,7 +141,7 @@ def get_game_statistics(
 
 def get_game_roster(
     game_id: str,
-    access_level: str = "trial",
+    access_level: str = "production",
     language_code: str = "en",
     version: str = "v7",
     file_format: str = "json",
@@ -178,7 +178,7 @@ def get_team_season_stats(
     team_identifier: str,
     season_year: str = "2025",
     season_type: str = "reg",
-    access_level: str = "trial",
+    access_level: str = "production",
     language_code: str = "en",
     version: str = "v7",
     file_format: str = "json",
