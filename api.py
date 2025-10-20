@@ -19,6 +19,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 SPORTRADAR_API_KEY = os.getenv("SPORTRADAR_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
+TIMEZONE = os.getenv("TIMEZONE", "UTC")
 
 if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY]):
     raise ValueError("All API keys (GEMINI, BRAVE, SPORTRADAR, SERPAPI) must be set in .env file")
@@ -283,8 +284,12 @@ async def chat_completions(request: ChatCompletionRequest):
     except FileNotFoundError:
         return JSONResponse(status_code=500, content={"error": "system_prompt.txt not found."})
 
-    texas_tz = pytz.timezone('America/Chicago')
-    today_date = datetime.now(texas_tz).strftime("%A, %B %d, %Y")
+    try:
+        user_tz = pytz.timezone(TIMEZONE)
+    except pytz.UnknownTimeZoneError:
+        return JSONResponse(status_code=400, content={"error": f"Invalid timezone specified: {TIMEZONE}"})
+
+    today_date = datetime.now(user_tz).strftime("%A, %B %d, %Y %I:%M %p %Z")
     system_prompt = base_prompt.replace("{current_date}", today_date)
     
     # Limit the number of messages to the last 10 to avoid timeouts

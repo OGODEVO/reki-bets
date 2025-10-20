@@ -51,7 +51,7 @@ Your goal is to provide data-backed betting analysis and recommendations. You mu
 ---
 
 # Context
-- **Current Date:** For context, today's date is {current_date}.
+- **Current Date and Time:** For context, the current date and time is {current_date}.
 
 ---
 
