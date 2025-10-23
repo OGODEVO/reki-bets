@@ -35,6 +35,8 @@ from odds import get_daily_schedule_odds, get_sport_event_markets
 
 # --- Tool Definitions & Schema ---
 
+NBA_SCHEDULE_CACHE = {}
+
 AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
     "find_game_by_teams_and_date": find_game_by_teams_and_date,
@@ -302,6 +304,11 @@ async def chat_completions(request: ChatCompletionRequest):
 
     today_date = datetime.now(user_tz).strftime("%A, %B %d, %Y %I:%M %p %Z")
     system_prompt = base_prompt.replace("{current_date}", today_date)
+
+    if NBA_SCHEDULE_CACHE:
+        cached_games = [f"Game ID: {game['id']}, Teams: {game['away']['name']} vs {game['home']['name']}" for game in NBA_SCHEDULE_CACHE.get("games", [])]
+        if cached_games:
+            system_prompt += "\n\nFor your reference, here is the last NBA schedule you looked up. Use the game_id from this list for any follow-up questions:\n" + "\n".join(cached_games)
     
     # Limit the number of messages to the last 10 to avoid timeouts
     # Convert all messages to dictionaries for consistent processing
@@ -355,6 +362,19 @@ async def chat_completions(request: ChatCompletionRequest):
                     try:
                         function_args = json.loads(tool_call["function"]["arguments"])
                         function_response = function_to_call(**function_args) if function_args else function_to_call()
+                        
+                        if function_name == "get_daily_schedule":
+                            NBA_SCHEDULE_CACHE.clear()
+                            if isinstance(function_response, dict) and "games" in function_response:
+                                NBA_SCHEDULE_CACHE["games"] = [
+                                    {
+                                        "id": game.get("id"),
+                                        "away": {"name": game.get("away", {}).get("name")},
+                                        "home": {"name": game.get("home", {}).get("name")}
+                                    }
+                                    for game in function_response["games"]
+                                ]
+
                     except Exception as e:
                         function_response = {"status": "error", "error": str(e)}
 
