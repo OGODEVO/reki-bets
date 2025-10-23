@@ -1,11 +1,6 @@
 import os
-from cachetools import cached, TTLCache
 from client import nba_client
 
-# Cache for the daily schedule, expires every 12 hours
-schedule_cache = TTLCache(maxsize=128, ttl=43200)
-
-@cached(schedule_cache)
 def get_daily_schedule(year: int, month: int, day: int) -> dict:
     """Fetches the NBA daily schedule for a given date."""
     endpoint = f"games/{year}/{month}/{day}/schedule.json"

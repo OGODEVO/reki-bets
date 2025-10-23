@@ -20,6 +20,8 @@ BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 SPORTRADAR_API_KEY = os.getenv("SPORTRADAR_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 TIMEZONE = os.getenv("TIMEZONE", "UTC")
+XAI_API_KEY = os.getenv("XAI_API_KEY")
+XAI_BASE_URL = os.getenv("XAI_BASE_URL")
 
 if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY]):
     raise ValueError("All API keys (GEMINI, BRAVE, SPORTRADAR, SERPAPI) must be set in .env file")
@@ -235,7 +237,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "get_game_summary",
-            "description": "Fetches the game summary for a given NBA game using its unique game ID.",
+            "description": "Fetches the game summary for a given NBA game using its unique game ID. Can be used for live, in-progress games to get the current score.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -262,7 +264,6 @@ class ChatCompletionRequest(BaseModel):
     stream: Optional[bool] = True
 
 app = FastAPI()
-client = OpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
 
 @app.get("/v1/models")
 async def list_models():
@@ -270,13 +271,23 @@ async def list_models():
         "object": "list",
         "data": [
             {"id": "gemini-2.5-flash", "object": "model", "created": int(time.time()), "owned_by": "google"},
-            {"id": "gemini-2.5-flash-lite", "object": "model", "created": int(time.time()), "owned_by": "google"}
+            {"id": "gemini-2.5-flash-lite", "object": "model", "created": int(time.time()), "owned_by": "google"},
+            {"id": "grok-4-fast-reasoning", "object": "model", "created": int(time.time()), "owned_by": "xai"}
         ]
     }
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
     print(f"Received request for model: {request.model}")
+
+    model_owner = next((item["owned_by"] for item in (await list_models())["data"] if item["id"] == request.model), None)
+
+    if model_owner == "google":
+        client = OpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+    elif model_owner == "xai":
+        client = OpenAI(api_key=XAI_API_KEY, base_url=XAI_BASE_URL)
+    else:
+        return JSONResponse(status_code=400, content={"error": f"Model '{request.model}' not found or owner not configured."})
 
     try:
         with open("system_prompt.txt", "r") as f:
@@ -293,13 +304,16 @@ async def chat_completions(request: ChatCompletionRequest):
     system_prompt = base_prompt.replace("{current_date}", today_date)
     
     # Limit the number of messages to the last 10 to avoid timeouts
-    messages = [{"role": "system", "content": system_prompt}] + request.messages[-10:]
+    # Convert all messages to dictionaries for consistent processing
+    messages_as_dicts = [msg.model_dump() if isinstance(msg, BaseModel) else msg for msg in request.messages]
+    messages = [{"role": "system", "content": system_prompt}] + messages_as_dicts[-10:]
 
     async def stream_generator():
         yield "data: [STREAM_STARTED]\n\n"
         
         try:
-            # First, stream the initial response from the model
+            # First, get the initial response from the model. We'll consume the stream internally
+            # to decide whether to yield it or to execute a tool first.
             initial_stream = client.chat.completions.create(
                 model=request.model, 
                 messages=messages, 
@@ -309,13 +323,18 @@ async def chat_completions(request: ChatCompletionRequest):
             )
 
             tool_calls = []
+            initial_content_chunks = []
+            
             for chunk in initial_stream:
-                yield f"data: {chunk.model_dump_json()}\n\n"
-                # Check for tool calls in the stream
+                # Accumulate tool calls if they are present
                 if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.tool_calls:
                     tool_calls.extend(chunk.choices[0].delta.tool_calls)
+                # Accumulate content chunks
+                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    initial_content_chunks.append(chunk)
 
-            # If there are tool calls, execute them and stream the final response
+            # --- Logic to handle response ---
+            # If there are tool calls, execute them and stream the FINAL response.
             if tool_calls:
                 # Reconstruct the full tool calls from the chunks
                 full_tool_calls = []
@@ -325,20 +344,14 @@ async def chat_completions(request: ChatCompletionRequest):
                     if tc.function and tc.function.arguments:
                         full_tool_calls[-1]["function"]["arguments"] += tc.function.arguments
 
-                # Append the assistant message with tool calls to the history
-                messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": full_tool_calls
-                })
+                messages.append({"role": "assistant", "content": None, "tool_calls": full_tool_calls})
 
-                # Execute the tools
+                # Execute the tools and append their results
                 for tool_call in full_tool_calls:
                     function_name = tool_call["function"]["name"]
                     function_to_call = AVAILABLE_TOOLS.get(function_name)
-                    if not function_to_call:
-                        continue
-
+                    if not function_to_call: continue
+                    
                     try:
                         function_args = json.loads(tool_call["function"]["arguments"])
                         function_response = function_to_call(**function_args) if function_args else function_to_call()
@@ -352,11 +365,16 @@ async def chat_completions(request: ChatCompletionRequest):
                         "content": json.dumps(function_response),
                     })
                 
-                # Stream the final response from the model
+                # Now, stream the definitive final response
                 final_response_stream = client.chat.completions.create(
-                    model=request.model, messages=messages, stream=True
+                    model=request.model, messages=messages, stream=True, tools=tools_schema, tool_choice="auto"
                 )
                 for chunk in final_response_stream:
+                    yield f"data: {chunk.model_dump_json()}\n\n"
+
+            # If there were NO tool calls, just stream the initial response we collected.
+            else:
+                for chunk in initial_content_chunks:
                     yield f"data: {chunk.model_dump_json()}\n\n"
 
         except Exception as e:
