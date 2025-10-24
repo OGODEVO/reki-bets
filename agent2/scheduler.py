@@ -5,7 +5,6 @@ from datetime import date
 
 # --- Configuration ---
 BASE_URL = "http://localhost:8007"
-SCHEDULE_ENDPOINT = f"{BASE_URL}/schedule"
 NEWS_ENDPOINT = f"{BASE_URL}/news"
 BETTING_NEWS_ENDPOINT = f"{BASE_URL}/betting-news"
 
@@ -16,22 +15,14 @@ def run_daily_research():
     """
     print("Scheduler triggered. Running daily research tasks...")
     
-    today = date.today().isoformat()
-    
     try:
-        # 1. Fetch NBA Schedule for today
-        print(f"Requesting schedule for {today}...")
-        response_schedule = requests.post(SCHEDULE_ENDPOINT, json={"game_date": today})
-        response_schedule.raise_for_status()
-        print(f"Schedule request successful: {response_schedule.status_code}")
-
-        # 2. Fetch general NBA News
+        # 1. Fetch general NBA News
         print("Requesting general NBA news...")
         response_news = requests.post(NEWS_ENDPOINT)
         response_news.raise_for_status()
         print(f"News request successful: {response_news.status_code}")
 
-        # 3. Fetch Betting News
+        # 2. Fetch Betting News
         print("Requesting betting news...")
         response_betting = requests.post(BETTING_NEWS_ENDPOINT)
         response_betting.raise_for_status()

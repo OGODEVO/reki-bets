@@ -13,6 +13,14 @@ from bs4 import BeautifulSoup
 # --- Configuration & Initialization ---
 load_dotenv()
 
+# Load system prompt
+try:
+    with open("agent2/system_prompt.txt", "r") as f:
+        SYSTEM_PROMPT = f.read()
+except FileNotFoundError:
+    SYSTEM_PROMPT = "You are a helpful research assistant." # Fallback
+    print("Warning: agent2/system_prompt.txt not found. Using default system prompt.")
+
 # Load API keys from environment
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 XAI_API_KEY = os.getenv("XAI_API_KEY")
@@ -54,7 +62,6 @@ xai_client = OpenAI(
 app = FastAPI()
 
 # --- Data Storage ---
-SCHEDULE_DATA_FILE = "agent2_nba_schedule.json"
 NEWS_DATA_FILE = "agent2_nba_news.json"
 BETTING_NEWS_DATA_FILE = "agent2_betting_news.json"
 RESEARCH_DATA_FILE = "agent2_research_data.json"
@@ -68,9 +75,6 @@ def save_json_data(data, filename):
 class ResearchRequest(BaseModel):
     query: str
 
-class ScheduleRequest(BaseModel):
-    game_date: date = None # Expects YYYY-MM-DD format
-
 # --- Core Logic ---
 def process_with_llm(query: str, search_results: List[Dict[str, Any]]):
     """
@@ -80,9 +84,10 @@ def process_with_llm(query: str, search_results: List[Dict[str, Any]]):
     
     results_summary = "\n".join([f"- {item.get('title', 'No Title')}: {item.get('description', 'No description.')}" for item in search_results[:5]])
 
-    prompt = f"""
-    You are a specialized web research agent. Your goal is to synthesize information from web search results into a concise, structured answer.
-    
+    # Inject current date into the system prompt
+    formatted_prompt = SYSTEM_PROMPT.format(current_date=datetime.now().isoformat())
+
+    user_prompt = f"""
     Original Query: "{query}"
     
     Search Results:
@@ -92,10 +97,10 @@ def process_with_llm(query: str, search_results: List[Dict[str, Any]]):
     """
 
     response = xai_client.chat.completions.create(
-        model="grok-1",
+        model="grok-4-fast-reasoning",
         messages=[
-            {"role": "system", "content": "You are a helpful research assistant."},
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": formatted_prompt},
+            {"role": "user", "content": user_prompt}
         ],
         temperature=0.7,
     )
@@ -127,38 +132,6 @@ def perform_research(request: ResearchRequest):
     return {"summary": processed_summary}
 
 # --- Web Scraping Logic ---
-def fetch_nba_schedule(game_date: date):
-    """
-    Fetches the NBA schedule from nba.com for a given date.
-    """
-    date_str = game_date.strftime("%Y-%m-%d")
-    url = f"https://www.nba.com/games?date={date_str}"
-    print(f"Fetching schedule from: {url}")
-
-    try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Error fetching URL: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch NBA schedule data.")
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-    games = []
-    game_cards = soup.find_all("div", class_="GameCard_gc__3_16k") 
-
-    for card in game_cards:
-        try:
-            teams = card.find_all("span", class_="MatchupCardTeamName_teamName__3i-sP")
-            if len(teams) == 2:
-                away_team = teams[0].text.strip()
-                home_team = teams[1].text.strip()
-                games.append({"away_team": away_team, "home_team": home_team})
-        except Exception as e:
-            print(f"Error parsing a game card: {e}")
-            continue
-
-    return games
-
 def fetch_nba_news():
     """
     Fetches the top news stories from nba.com/news.
@@ -219,29 +192,6 @@ def fetch_betting_news():
             continue
     
     return articles
-
-@app.post("/schedule")
-def get_schedule(request: ScheduleRequest):
-    """
-    API endpoint to fetch the NBA schedule for a specific date.
-    """
-    game_date = request.game_date if request.game_date else date.today()
-    print(f"Received schedule request for: {game_date}")
-    
-    schedule_data = fetch_nba_schedule(game_date)
-    
-    if not schedule_data:
-        raise HTTPException(status_code=404, detail="No games found or failed to parse schedule for the given date.")
-
-    final_data = {
-        "date": game_date.isoformat(),
-        "last_updated": datetime.now().isoformat(),
-        "games": schedule_data
-    }
-    save_json_data(final_data, SCHEDULE_DATA_FILE)
-    
-    print(f"Successfully fetched and saved schedule for {game_date}.")
-    return final_data
 
 @app.post("/news")
 def get_news():
