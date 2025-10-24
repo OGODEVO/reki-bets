@@ -29,8 +29,8 @@ if not all([GEMINI_API_KEY, BRAVE_API_KEY, SPORTRADAR_API_KEY, SERPAPI_API_KEY])
 import subprocess
 import sys
 
-from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats, find_game_by_teams_and_date
-from nba import get_daily_schedule, get_daily_injuries, get_game_summary, get_seasonal_stats, get_teams_list
+from nfl import get_nfl_current_week_schedule, get_nfl_game_statistics, get_nfl_game_roster, get_nfl_team_season_stats, find_nfl_game_by_teams_and_date
+from nba import get_nba_daily_schedule, get_nba_daily_injuries, get_nba_game_summary, get_nba_seasonal_stats, get_nba_teams_list
 from odds import get_daily_schedule_odds, get_sport_event_markets
 
 # --- Tool Definitions & Schema ---
@@ -45,16 +45,16 @@ def clear_caches():
     return {"status": "Caches cleared successfully."}
 
 AVAILABLE_TOOLS = {
-    "get_current_week_schedule": get_current_week_schedule,
-    "find_game_by_teams_and_date": find_game_by_teams_and_date,
-    "get_game_statistics": get_game_statistics,
-    "get_game_roster": get_game_roster,
-    "get_team_season_stats": get_team_season_stats,
-    "get_daily_schedule": get_daily_schedule,
-    "get_daily_injuries": get_daily_injuries,
-    "get_game_summary": get_game_summary,
-    "get_seasonal_stats": get_seasonal_stats,
-    "get_teams_list": get_teams_list,
+    "get_nfl_current_week_schedule": get_nfl_current_week_schedule,
+    "find_nfl_game_by_teams_and_date": find_nfl_game_by_teams_and_date,
+    "get_nfl_game_statistics": get_nfl_game_statistics,
+    "get_nfl_game_roster": get_nfl_game_roster,
+    "get_nfl_team_season_stats": get_nfl_team_season_stats,
+    "get_nba_daily_schedule": get_nba_daily_schedule,
+    "get_nba_daily_injuries": get_nba_daily_injuries,
+    "get_nba_game_summary": get_nba_game_summary,
+    "get_nba_seasonal_stats": get_nba_seasonal_stats,
+    "get_nba_teams_list": get_nba_teams_list,
     "get_daily_schedule_odds": get_daily_schedule_odds,
     "get_sport_event_markets": get_sport_event_markets,
     "clear_caches": clear_caches,
@@ -64,18 +64,18 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "find_game_by_teams_and_date",
+            "name": "find_nfl_game_by_teams_and_date",
             "description": "Finds a specific NFL game by the names of the two teams and the date of the game.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "team1": {
                         "type": "string",
-                        "description": "The name of the first team (e.g., 'Seattle Seahawks')."
+                        "description": "The name of the first NFL team (e.g., 'Seattle Seahawks')."
                     },
                     "team2": {
                         "type": "string",
-                        "description": "The name of the second team (e.g., 'Houston Texans')."
+                        "description": "The name of the second NFL team (e.g., 'Houston Texans')."
                     },
                     "date": {
                         "type": "string",
@@ -127,7 +127,7 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_current_week_schedule",
+            "name": "get_nfl_current_week_schedule",
             "description": "Fetches the NFL schedule for the current week, including game IDs, teams, venue, and broadcast info.",
             "parameters": {
                 "type": "object",
@@ -139,14 +139,14 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_game_statistics",
+            "name": "get_nfl_game_statistics",
             "description": "Fetches detailed statistics for a specific NFL game using its unique game ID.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "game_id": {
                         "type": "string",
-                        "description": "The unique identifier for the game."
+                        "description": "The unique identifier for the NFL game."
                     }
                 },
                 "required": ["game_id"],
@@ -156,14 +156,14 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_game_roster",
+            "name": "get_nfl_game_roster",
             "description": "Fetches the complete game roster for both teams in a specific NFL game.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "game_id": {
                         "type": "string",
-                        "description": "The unique identifier for the game."
+                        "description": "The unique identifier for the NFL game."
                     }
                 },
                 "required": ["game_id"],
@@ -173,14 +173,14 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_team_season_stats",
+            "name": "get_nfl_team_season_stats",
             "description": "Fetches the seasonal statistics for a specific NFL team.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "team_identifier": {
                         "type": "string",
-                        "description": "The name, abbreviation, or unique identifier for the team."
+                        "description": "The name, abbreviation, or unique identifier for the NFL team."
                     },
                     "season_year": {
                         "type": "string",
@@ -198,7 +198,7 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_daily_schedule",
+            "name": "get_nba_daily_schedule",
             "description": "Fetches the NBA daily schedule for a given date.",
             "parameters": {
                 "type": "object",
@@ -223,7 +223,7 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_daily_injuries",
+            "name": "get_nba_daily_injuries",
             "description": "Fetches the NBA daily injuries for a given date.",
             "parameters": {
                 "type": "object",
@@ -248,14 +248,14 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_game_summary",
-            "description": "Fetches the game summary for a given NBA game using its unique game ID. Can be used for live, in-progress games to get the current score.",
+            "name": "get_nba_game_summary",
+            "description": "Fetches a comprehensive game summary for a given NBA game, including live scores, team stats, and player rosters.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "game_id": {
                         "type": "string",
-                        "description": "The unique identifier for the game."
+                        "description": "The unique identifier for the NBA game."
                     }
                 },
                 "required": ["game_id"],
@@ -277,7 +277,7 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_seasonal_stats",
+            "name": "get_nba_seasonal_stats",
             "description": "Fetches complete team and player seasonal statistics for a given NBA team, season, and season type.",
             "parameters": {
                 "type": "object",
@@ -292,7 +292,7 @@ tools_schema = [
                     },
                     "team_id": {
                         "type": "string",
-                        "description": "The unique identifier for the team."
+                        "description": "The unique identifier for the NBA team."
                     }
                 },
                 "required": ["season_year", "season_type", "team_id"],
@@ -302,8 +302,8 @@ tools_schema = [
     {
         "type": "function",
         "function": {
-            "name": "get_teams_list",
-            "description": "Fetches a list of all NBA teams, including their names, aliases, and unique IDs, which are required for other statistical tools.",
+            "name": "get_nba_teams_list",
+            "description": "Fetches a list of all NBA teams, including their names, aliases, and unique IDs.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -422,7 +422,7 @@ async def chat_completions(request: ChatCompletionRequest):
                         function_args = json.loads(tool_call["function"]["arguments"])
                         function_response = function_to_call(**function_args) if function_args else function_to_call()
                         
-                        if function_name == "get_daily_schedule":
+                        if function_name == "get_nba_daily_schedule":
                             NBA_SCHEDULE_CACHE.clear()
                             if isinstance(function_response, dict) and "games" in function_response:
                                 NBA_SCHEDULE_CACHE["games"] = [
@@ -434,7 +434,7 @@ async def chat_completions(request: ChatCompletionRequest):
                                     for game in function_response["games"]
                                 ]
 
-                        if function_name == "get_teams_list":
+                        if function_name == "get_nba_teams_list":
                             NBA_TEAMS_CACHE.clear()
                             if isinstance(function_response, dict) and "teams" in function_response:
                                 NBA_TEAMS_CACHE["teams"] = [

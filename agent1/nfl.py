@@ -72,14 +72,14 @@ for abbr, full_name in ABBREVIATIONS.items():
 schedule_cache = TTLCache(maxsize=10, ttl=86400)
 
 @cached(schedule_cache)
-def get_current_week_schedule() -> dict:
+def get_nfl_current_week_schedule() -> dict:
     """Retrieves the NFL schedule for the current week."""
     endpoint = "games/current_week/schedule.json"
     return sportradar_client._make_request(endpoint)
 
-def find_game_by_teams_and_date(team1: str, team2: str, date: str) -> dict:
+def find_nfl_game_by_teams_and_date(team1: str, team2: str, date: str) -> dict:
     """
-    Finds a specific game by team names and date.
+    Finds a specific NFL game by team names and date.
 
     Args:
         team1: The name of the first team.
@@ -94,7 +94,7 @@ def find_game_by_teams_and_date(team1: str, team2: str, date: str) -> dict:
     except ValueError:
         return {"status": "error", "message": "Invalid date format. Please use YYYY-MM-DD."}
 
-    schedule_data = get_current_week_schedule()
+    schedule_data = get_nfl_current_week_schedule()
     if schedule_data.get("status") == "error":
         return schedule_data
 
@@ -115,17 +115,17 @@ def find_game_by_teams_and_date(team1: str, team2: str, date: str) -> dict:
 
     return {"status": "not_found", "message": f"No game found between {team1} and {team2} on {date}."}
 
-def get_game_statistics(game_id: str) -> dict:
+def get_nfl_game_statistics(game_id: str) -> dict:
     """Retrieves statistics for a specific NFL game."""
     endpoint = f"games/{game_id}/statistics.json"
     return sportradar_client._make_request(endpoint)
 
-def get_game_roster(game_id: str) -> dict:
+def get_nfl_game_roster(game_id: str) -> dict:
     """Retrievels the roster for a specific NFL game."""
     endpoint = f"games/{game_id}/roster.json"
     return sportradar_client._make_request(endpoint)
 
-def get_team_season_stats(
+def get_nfl_team_season_stats(
     team_identifier: str,
     season_year: str = "2025",
     season_type: str = "reg",
@@ -144,7 +144,7 @@ def get_team_season_stats(
 
 if __name__ == "__main__":
     print("--- Fetching Current Week Schedule ---")
-    schedule = get_current_week_schedule()
+    schedule = get_nfl_current_week_schedule()
     if schedule.get("status") != "error":
         print("Successfully fetched schedule.")
         
@@ -156,21 +156,21 @@ if __name__ == "__main__":
             game_date = datetime.fromisoformat(first_game["scheduled"]).strftime("%Y-%m-%d")
 
             print(f"\n--- Finding Game: {away_team} at {home_team} on {game_date} ---")
-            found_game_info = find_game_by_teams_and_date(home_team, away_team, game_date)
+            found_game_info = find_nfl_game_by_teams_and_date(home_team, away_team, game_date)
             if found_game_info.get("status") == "ok":
                 found_game = found_game_info["game"]
                 print(f"Successfully found game with ID: {found_game['id']}")
                 
                 game_id = found_game['id']
                 print(f"\n--- Fetching Statistics for Game ID: {game_id} ---")
-                stats = get_game_statistics(game_id=game_id)
+                stats = get_nfl_game_statistics(game_id=game_id)
                 if stats.get("status") != "error":
                     print("Successfully fetched game statistics.")
                 else:
                     print(f"Error fetching stats: {stats.get('message')}")
 
                 print(f"\n--- Fetching Roster for Game ID: {game_id} ---")
-                roster = get_game_roster(game_id=game_id)
+                roster = get_nfl_game_roster(game_id=game_id)
                 if roster.get("status") != "error":
                     print("Successfully fetched game roster.")
                 else:
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     
         for team_identifier in test_teams:
             print(f"\n--- Testing with identifier: '{team_identifier}' ---")
-            season_stats = get_team_season_stats(team_identifier=team_identifier)
+            season_stats = get_nfl_team_season_stats(team_identifier=team_identifier)
             if season_stats.get("status") != "error":
                 print(f"Successfully fetched season stats for {team_identifier}.")
             else:
