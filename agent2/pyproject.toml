@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "agent2-researcher"
+version = "0.1.0"
+description = "A web research agent using Brave Search and Grok."
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.110.0"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
+openai = "^1.12.0"
+python-dotenv = "^1.0.1"
+brave-search = "^0.2.0"
+requests = "^2.31.0"
+beautifulsoup4 = "^4.12.3"
+schedule = "^1.2.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
