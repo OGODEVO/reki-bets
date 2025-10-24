@@ -30,12 +30,19 @@ import subprocess
 import sys
 
 from nfl import get_current_week_schedule, get_game_statistics, get_game_roster, get_team_season_stats, find_game_by_teams_and_date
-from nba import get_daily_schedule, get_daily_injuries, get_game_summary
+from nba import get_daily_schedule, get_daily_injuries, get_game_summary, get_seasonal_stats, get_teams_list
 from odds import get_daily_schedule_odds, get_sport_event_markets
 
 # --- Tool Definitions & Schema ---
 
 NBA_SCHEDULE_CACHE = {}
+NBA_TEAMS_CACHE = {}
+
+def clear_caches():
+    """Clears all temporary data caches."""
+    NBA_SCHEDULE_CACHE.clear()
+    NBA_TEAMS_CACHE.clear()
+    return {"status": "Caches cleared successfully."}
 
 AVAILABLE_TOOLS = {
     "get_current_week_schedule": get_current_week_schedule,
@@ -46,8 +53,11 @@ AVAILABLE_TOOLS = {
     "get_daily_schedule": get_daily_schedule,
     "get_daily_injuries": get_daily_injuries,
     "get_game_summary": get_game_summary,
+    "get_seasonal_stats": get_seasonal_stats,
+    "get_teams_list": get_teams_list,
     "get_daily_schedule_odds": get_daily_schedule_odds,
     "get_sport_event_markets": get_sport_event_markets,
+    "clear_caches": clear_caches,
 }
 
 tools_schema = [
@@ -251,6 +261,55 @@ tools_schema = [
                 "required": ["game_id"],
             },
         },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "clear_caches",
+            "description": "Clears all temporary data caches for NBA games and teams.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_seasonal_stats",
+            "description": "Fetches complete team and player seasonal statistics for a given NBA team, season, and season type.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "season_year": {
+                        "type": "string",
+                        "description": "The year of the season (e.g., '2023')."
+                    },
+                    "season_type": {
+                        "type": "string",
+                        "description": "The type of season. Can be 'REG' for regular season, 'PRE' for preseason, or 'PST' for postseason."
+                    },
+                    "team_id": {
+                        "type": "string",
+                        "description": "The unique identifier for the team."
+                    }
+                },
+                "required": ["season_year", "season_type", "team_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_teams_list",
+            "description": "Fetches a list of all NBA teams, including their names, aliases, and unique IDs, which are required for other statistical tools.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
     }
 ]
 
@@ -375,6 +434,17 @@ async def chat_completions(request: ChatCompletionRequest):
                                     for game in function_response["games"]
                                 ]
 
+                        if function_name == "get_teams_list":
+                            NBA_TEAMS_CACHE.clear()
+                            if isinstance(function_response, dict) and "teams" in function_response:
+                                NBA_TEAMS_CACHE["teams"] = [
+                                    {
+                                        "id": team.get("id"),
+                                        "name": team.get("name"),
+                                        "alias": team.get("alias")
+                                    }
+                                    for team in function_response["teams"]
+                                ]
                     except Exception as e:
                         function_response = {"status": "error", "error": str(e)}
 
