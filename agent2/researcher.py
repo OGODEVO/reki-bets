@@ -15,11 +15,11 @@ load_dotenv()
 
 # Load system prompt
 try:
-    with open("agent2/system_prompt.txt", "r") as f:
+    with open("system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.read()
 except FileNotFoundError:
     SYSTEM_PROMPT = "You are a helpful research assistant." # Fallback
-    print("Warning: agent2/system_prompt.txt not found. Using default system prompt.")
+    print("Warning: system_prompt.txt not found. Using default system prompt.")
 
 # Load API keys from environment
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
@@ -111,7 +111,7 @@ def perform_research(request: ResearchRequest):
     """
     API endpoint to perform a web search and process the results.
     """
-    print(f"Received research request for: {request.query}")
+    print(f"[{datetime.now()}] Received research request for: {request.query}")
     
     search_results = browser.search(request.query)
     
@@ -128,109 +128,145 @@ def perform_research(request: ResearchRequest):
     }
     save_json_data(final_data, RESEARCH_DATA_FILE)
     
-    print("Research complete. Returning summary.")
+    print(f"[{datetime.now()}] Research complete for query: '{request.query}'. Returning summary.")
     return {"summary": processed_summary}
 
-# --- Web Scraping Logic ---
-def fetch_nba_news():
+# --- Web Scraping & Summarization Logic ---
+def summarize_with_llm(text: str, max_chars: int = 4000):
     """
-    Fetches the top news stories from nba.com/news.
+    Summarizes a given text using the Grok model.
     """
-    url = "https://www.nba.com/news/category/top-stories"
+    if not text:
+        return "No content available to summarize."
+    
+    # Truncate text to avoid exceeding model context limits
+    truncated_text = text[:max_chars]
+
+    prompt = f"""
+    Please summarize the following article text in 2-3 concise sentences. Focus on the key takeaways and most important information.
+    
+    Article Text:
+    "{truncated_text}"
+    """
+    try:
+        response = xai_client.chat.completions.create(
+            model="grok-4-fast-reasoning",
+            messages=[
+                {"role": "system", "content": "You are an expert at summarizing sports news articles."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error during summarization: {e}")
+        return "Failed to generate summary."
+
+def fetch_and_summarize(url: str, link_selector: str, article_selector: str, base_url: str = ""):
+    """
+    Generic function to fetch links, visit each page, and summarize its content.
+    """
     print(f"Fetching news from: {url}")
-
     try:
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         response.raise_for_status()
     except requests.RequestException as e:
-        print(f"Error fetching URL: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch NBA news data.")
+        print(f"Error fetching main URL {url}: {e}")
+        return []
 
     soup = BeautifulSoup(response.content, 'html.parser')
-    articles = []
-    news_items = soup.find_all("a", class_="Article_articleLink__2d20x")
+    links = soup.select(link_selector)
+    summarized_articles = []
 
-    for item in news_items:
+    for title_element in links[:5]: # Limit to 5 articles to manage processing time
         try:
-            title = item.find("h2").text.strip()
-            link = "https://www.nba.com" + item['href']
-            articles.append({"title": title, "link": link})
-        except Exception as e:
-            print(f"Error parsing a news item: {e}")
+            link = title_element.find_parent('a')
+            if not link:
+                continue
+
+            article_url = link.get('href')
+            if not article_url or not article_url.startswith('/news/'):
+                continue
+                
+            article_url = base_url + article_url
+            
+            title = title_element.text.strip()
+
+            print(f"  - Visiting: {article_url}")
+            article_response = requests.get(article_url, headers={'User-Agent': 'Mozilla/5.0'})
+            article_response.raise_for_status()
+            
+            article_soup = BeautifulSoup(article_response.content, 'html.parser')
+            article_container = article_soup.find('main')
+            
+            if article_container:
+                article_text = article_container.get_text(separator=' ', strip=True)
+            else:
+                article_text = ""
+
+            summary = summarize_with_llm(article_text)
+
+            if title and not any(d.get('link') == article_url for d in summarized_articles):
+                 summarized_articles.append({"title": title, "link": article_url, "summary": summary})
+
+        except requests.RequestException as e:
+            print(f"  - Failed to fetch article {article_url}: {e}")
             continue
-    
-    return articles
-
-def fetch_betting_news():
-    """
-    Fetches the latest NBA betting news from bettingnews.com.
-    """
-    url = "https://www.bettingnews.com/nba/"
-    print(f"Fetching betting news from: {url}")
-
-    try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Error fetching URL: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch betting news data.")
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-    articles = []
-    news_items = soup.find_all("div", class_="news-item") 
-
-    for item in news_items:
-        try:
-            title_element = item.find("h3")
-            link_element = item.find("a")
-            if title_element and link_element:
-                title = title_element.text.strip()
-                link = link_element['href']
-                articles.append({"title": title, "link": link})
         except Exception as e:
-            print(f"Error parsing a betting news item: {e}")
+            print(f"  - Error processing article {article_url}: {e}")
             continue
-    
-    return articles
+            
+    return summarized_articles
 
 @app.post("/news")
 def get_news():
     """
-    API endpoint to fetch the latest NBA news.
+    API endpoint to fetch and summarize the latest NBA news.
     """
-    print("Received news request.")
-    news_data = fetch_nba_news()
+    print(f"[{datetime.now()}] Received news request.")
+    
+    articles = fetch_and_summarize(
+        url="https://www.nba.com/news/category/top-stories",
+        link_selector="a[href^='/news/'] h4",
+        article_selector="main > div", # Corrected selector for article content
+        base_url="https://www.nba.com"
+    )
 
-    if not news_data:
+    if not articles:
         raise HTTPException(status_code=404, detail="No news found or failed to parse news data.")
 
     final_data = {
         "last_updated": datetime.now().isoformat(),
-        "articles": news_data
+        "articles": articles
     }
     save_json_data(final_data, NEWS_DATA_FILE)
 
-    print("Successfully fetched and saved news.")
+    print(f"[{datetime.now()}] Successfully fetched and summarized news.")
     return final_data
 
 @app.post("/betting-news")
 def get_betting_news():
     """
-    API endpoint to fetch the latest NBA betting news.
+    API endpoint to fetch and summarize the latest NBA betting news.
     """
-    print("Received betting news request.")
-    news_data = fetch_betting_news()
+    print(f"[{datetime.now()}] Received betting news request.")
 
-    if not news_data:
+    articles = fetch_and_summarize(
+        url="https://www.bettingnews.com/nba/",
+        link_selector="div.news-item h3 a",
+        article_selector="div.news-content" # A guess for the article content container
+    )
+
+    if not articles:
         raise HTTPException(status_code=404, detail="No betting news found or failed to parse data.")
 
     final_data = {
         "last_updated": datetime.now().isoformat(),
-        "articles": news_data
+        "articles": articles
     }
     save_json_data(final_data, BETTING_NEWS_DATA_FILE)
 
-    print("Successfully fetched and saved betting news.")
+    print(f"[{datetime.now()}] Successfully fetched and summarized betting news.")
     return final_data
 
 # --- Main Execution ---

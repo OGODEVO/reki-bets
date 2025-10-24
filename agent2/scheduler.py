@@ -1,19 +1,22 @@
 import requests
-import schedule
 import time
-from datetime import date
+from datetime import datetime
+import pytz
 
 # --- Configuration ---
 BASE_URL = "http://localhost:8007"
 NEWS_ENDPOINT = f"{BASE_URL}/news"
 BETTING_NEWS_ENDPOINT = f"{BASE_URL}/betting-news"
+TARGET_TIMEZONE = "America/Chicago"
+TARGET_HOUR = 10
+TARGET_MINUTE = 56
 
 # --- Job Definition ---
 def run_daily_research():
     """
-    Triggers all the data gathering endpoints on the research service.
+    Triggers the data gathering endpoints on the research service.
     """
-    print("Scheduler triggered. Running daily research tasks...")
+    print(f"[{datetime.now(pytz.timezone(TARGET_TIMEZONE))}] Triggering daily research tasks...")
     
     try:
         # 1. Fetch general NBA News
@@ -35,15 +38,30 @@ def run_daily_research():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
-# --- Scheduling ---
-# Set the job to run every day at 10:45 AM.
-# The time is in the local timezone of the machine running the script.
-schedule.every().day.at("10:45").do(run_daily_research)
+# --- Main Scheduling Loop ---
+def main():
+    """
+    Main loop to check the time and run the job at the target time in the specified timezone.
+    """
+    tz = pytz.timezone(TARGET_TIMEZONE)
+    last_run_date = None
+    
+    print(f"Scheduler started. Will run tasks daily at {TARGET_HOUR:02d}:{TARGET_MINUTE:02d} {TARGET_TIMEZONE} time.")
+    print("To stop, press Ctrl+C")
 
-print("Scheduler started. Waiting for the scheduled time (10:45)...")
-print("To stop, press Ctrl+C")
+    while True:
+        now_in_tz = datetime.now(tz)
+        
+        # Check if it's the target time and if the job hasn't run today.
+        if (now_in_tz.hour == TARGET_HOUR and 
+            now_in_tz.minute == TARGET_MINUTE and 
+            now_in_tz.date() != last_run_date):
+            
+            run_daily_research()
+            last_run_date = now_in_tz.date()
+        
+        # Sleep for 60 seconds before the next check.
+        time.sleep(60)
 
-# --- Main Loop ---
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+if __name__ == "__main__":
+    main()

@@ -13,7 +13,7 @@ python-dotenv = "^1.0.1"
 brave-search = "^0.2.0"
 requests = "^2.31.0"
 beautifulsoup4 = "^4.12.3"
-schedule = "^1.2.1"
+pytz = "^2024.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
