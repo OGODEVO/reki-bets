@@ -353,8 +353,10 @@ async def chat_completions(request: ChatCompletionRequest):
     try:
         with open("system_prompt.txt", "r") as f:
             base_prompt = f.read().strip()
-    except FileNotFoundError:
-        return JSONResponse(status_code=500, content={"error": "system_prompt.txt not found."})
+        with open("sports_state.json", "r") as f:
+            sports_state = f.read()
+    except FileNotFoundError as e:
+        return JSONResponse(status_code=500, content={"error": f"{e.filename} not found."})
 
     try:
         user_tz = pytz.timezone(TIMEZONE)
@@ -362,7 +364,10 @@ async def chat_completions(request: ChatCompletionRequest):
         return JSONResponse(status_code=400, content={"error": f"Invalid timezone specified: {TIMEZONE}"})
 
     today_date = datetime.now(user_tz).strftime("%A, %B %d, %Y %I:%M %p %Z")
+    
+    # Inject context into the prompt
     system_prompt = base_prompt.replace("{current_date}", today_date)
+    system_prompt = system_prompt.replace("{sports_state}", sports_state)
 
     if NBA_SCHEDULE_CACHE:
         cached_games = [f"Game ID: {game['id']}, Teams: {game['away']['name']} vs {game['home']['name']}" for game in NBA_SCHEDULE_CACHE.get("games", [])]

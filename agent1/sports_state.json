@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "last_updated": "2025-10-24",
+    "source": "Daily auto-update from official schedules and standings",
+    "description": "This file represents the agent’s persistent memory of the ongoing NBA and NFL seasons. It helps the agent stay grounded in the correct week, season stage, and context."
+  },
+
+  "nba": {
+    "season": "2025-26",
+    "status": "regular season",
+    "current_week": 2,
+    "games_played": 18,
+    "notable_context": "The NBA 2025-26 regular season tipped off last week. Teams are still finding rhythm, and early matchups are setting the tone for the year. Rookie debuts and off-season trades are under heavy discussion.",
+    "timeframe_summary": "We are early in the 2025-26 NBA regular season — roughly the second week of play. The first batch of games concluded with some surprises, but standings are still very fluid."
+  },
+
+  "nfl": {
+    "season": "2025",
+    "status": "midseason",
+    "current_week": 8,
+    "games_played": 120,
+    "notable_context": "The 2025 NFL season is entering its midpoint. Contenders are separating from the pack while teams with losing records are facing pressure to turn things around before the playoff picture starts to solidify.",
+    "timeframe_summary": "We are in Week 8 of the 2025 NFL season — right around midseason. Trade deadline discussions and injury updates dominate the headlines."
+  }
+}
