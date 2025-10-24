@@ -55,8 +55,8 @@ AVAILABLE_TOOLS = {
     "get_nba_game_summary": get_nba_game_summary,
     "get_nba_seasonal_stats": get_nba_seasonal_stats,
     "get_nba_teams_list": get_nba_teams_list,
-    "get_daily_schedule_odds": get_daily_schedule_odds,
-    "get_sport_event_markets": get_sport_event_markets,
+    # "get_daily_schedule_odds": get_daily_schedule_odds,
+    # "get_sport_event_markets": get_sport_event_markets,
     "clear_caches": clear_caches,
 }
 
@@ -83,44 +83,6 @@ tools_schema = [
                     }
                 },
                 "required": ["team1", "team2", "date"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_daily_schedule_odds",
-            "description": "Fetches the daily schedule for a given sport, returning a list of scheduled events and their unique sport_event_id, which is required to fetch market odds.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport_name": {
-                        "type": "string",
-                        "description": "The name of the sport (e.g., 'basketball', 'american_football')."
-                    },
-                    "date": {
-                        "type": "string",
-                        "description": "The date for which to fetch the schedule odds (format: YYYY-MM-DD)."
-                    }
-                },
-                "required": ["sport_name", "date"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_sport_event_markets",
-            "description": "Fetches the available betting markets for a specific sport event. Requires a `sport_event_id` (e.g., 'sr:sport_event:12345'), not a `game_id`.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sport_event_id": {
-                        "type": "string",
-                        "description": "The unique identifier for the sport event, which MUST start with 'sr:sport_event:'."
-                    }
-                },
-                "required": ["sport_event_id"],
             },
         },
     },

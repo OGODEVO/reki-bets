@@ -1,0 +1,12 @@
+# Project Status & To-Do List
+
+## Agent 1: Betting Analyst
+- **Current State:** Core analytical tools are in place. The agent's persona and mission are clearly defined.
+- **Immediate Task:** The odds-fetching tools (`get_daily_schedule_odds`, `get_sport_event_markets`) are disabled due to a bug. This is the highest priority fix. The agent is currently relying on the user to provide odds manually.
+
+## Agent 2: Web Research Agent
+- **Current State:** The agent is running as a service and can scrape links from news sites. The summarization logic is implemented but has been unreliable and is the primary focus of our debugging.
+- **Immediate Task:** Finalize and stabilize the web scraping and summarization logic. The agent must be able to reliably visit scraped links, extract the full article content, and produce an accurate summary. This is critical for providing Agent 1 with the qualitative data it needs.
+
+## Overall Goal
+The immediate goal is to get both agents fully functional so they can work in tandem: Agent 2 provides the narrative/news context, and Agent 1 performs the statistical analysis and makes recommendations based on user-provided odds.
