@@ -14,4 +14,5 @@ dependencies = [
     "cachetools",
     "streamlit",
     "serpapi",
+    "python-telegram-bot",
 ]

@@ -35,3 +35,20 @@ This is an AI agent that provides sports betting analysis for the NFL and NBA. I
 1.  **Get Game ID:** You MUST first call `get_daily_schedule` to find the correct `game_id`.
 2.  **Check Injuries:** Your second step is ALWAYS to call `get_daily_injuries` for the same date.
 3.  **Use Game ID:** Once you have the `game_id`, you can then call `get_game_summary`.
+
+## Telegram Bot
+
+To use the Telegram bot, you need to set up a Telegram bot token.
+
+1.  **Create a Telegram Bot:** Talk to the [BotFather](https://t.me/botfather) on Telegram to create a new bot and get your bot token.
+2.  **Set up Environment Variables:** Create a `.env` file in the root of the project and add the following line:
+
+    ```
+    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+    ```
+
+3.  **Run the Bot:** Run the following command to start the bot:
+
+    ```
+    python telegram_bot.py
+    ```
