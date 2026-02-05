@@ -96,4 +96,4 @@ poetry run python scheduler.py
 
 ## Project status
 
-See `spot.txt` for current priorities, including odds tooling fixes for Agent 1 and stabilization work for Agent 2’s scraping/summarization pipeline.
+See `spot.txt` for current priorities including odds tooling fixes for Agent 1 and stabilization work for Agent 2’s scraping/summarization pipeline.
