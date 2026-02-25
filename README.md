@@ -11,7 +11,7 @@ Reki Bets is a two-agent system for sports betting analysis and supporting resea
 .
 ├── agent1/                 # Betting analyst API + Streamlit UI
 ├── agent2/                 # Research agent API + scheduler
-└── spot.txt                # Project status and current priorities
+└── spot.txt                # Project status and current prioritie
 ```
 
 ## Prerequisites
